@@ -126,47 +126,47 @@
 
 ## 第 4 阶段：优化任务与上线验证
 
-* [ ] Task 12: 下一条优化任务
+* [x] Task 12: 下一条优化任务
 
-  * [ ] SubTask 12.1: 实现优化约束注入 Prompt 逻辑
+  * [x] SubTask 12.1: 实现优化约束注入 Prompt 逻辑
 
-  * [ ] SubTask 12.2: 实现下一条任务 API（POST /api/v1/tasks/{id}/next）
+  * [x] SubTask 12.2: 实现下一条任务 API（POST /api/v1/tasks/{id}/next）
 
-  * [ ] SubTask 12.3: 实现优化说明生成（改了什么、为什么改）
+  * [x] SubTask 12.3: 实现优化说明生成（改了什么、为什么改）
 
-  * [ ] SubTask 12.4: 前端：优化任务展示（标注"已优化"+ 优化说明）
+  * [x] SubTask 12.4: 前端：优化任务展示（标注"已优化"+ 优化说明）
 
-* [ ] Task 13: 异常流程处理
+* [x] Task 13: 异常流程处理
 
-  * [ ] SubTask 13.1: 用户有未完成任务时的提示与选择逻辑
+  * [x] SubTask 13.1: 用户有未完成任务时的提示与选择逻辑
 
-  * [ ] SubTask 13.2: 结构库为空时的错误处理
+  * [x] SubTask 13.2: 结构库为空时的错误处理
 
-  * [ ] SubTask 13.3: 任务过期逻辑（48h 未回填自动 EXPIRED）
+  * [x] SubTask 13.3: 任务过期逻辑（48h 未回填自动 EXPIRED）
 
-  * [ ] SubTask 13.4: 前端：各异常场景的提示 UI
+  * [x] SubTask 13.4: 前端：各异常场景的提示 UI
 
-* [ ] Task 14: 运营后台完善
+* [x] Task 14: 运营后台完善
 
-  * [ ] SubTask 14.1: 用户数据统计面板（任务数、发布率、回填率）
+  * [x] SubTask 14.1: 用户数据统计面板（任务数、发布率、回填率）
 
-  * [ ] SubTask 14.2: AI 调用日志查看
+  * [x] SubTask 14.2: AI 调用日志查看
 
-  * [ ] SubTask 14.3: 禁用词列表配置
+  * [x] SubTask 14.3: 禁用词列表配置
 
-  * [ ] SubTask 14.4: AI Prompt 模板配置
+  * [x] SubTask 14.4: AI Prompt 模板配置
 
-* [ ] Task 15: 端到端测试与上线
+* [x] Task 15: 端到端测试与上线
 
-  * [ ] SubTask 15.1: 后端单元测试（核心模块覆盖率 ≥ 80%）
+  * [x] SubTask 15.1: 后端单元测试（核心模块覆盖率 ≥ 80%）
 
-  * [ ] SubTask 15.2: API 集成测试
+  * [x] SubTask 15.2: API 集成测试
 
-  * [ ] SubTask 15.3: 前端 E2E 测试（核心闭环）
+  * [x] SubTask 15.3: 前端 E2E 测试（核心闭环）
 
-  * [ ] SubTask 15.4: 部署脚本与生产环境配置
+  * [x] SubTask 15.4: 部署脚本与生产环境配置
 
-  * [ ] SubTask 15.5: 种子用户验证与 KPI 统计埋点
+  * [x] SubTask 15.5: 种子用户验证与 KPI 统计埋点
 
 所有任务完成之后需要记载到记忆系统，如果jouney没有搭建，需要先搭建。
 
