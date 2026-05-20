@@ -1,9 +1,8 @@
-import asyncio
 import json
 import logging
 import time
 
-from anthropic import Anthropic, APIError, APITimeoutError
+from openai import APIError, APITimeoutError, AsyncOpenAI
 
 from app.config import settings
 
@@ -162,28 +161,28 @@ async def generate_content(
         task_type=task_type,
     )
 
-    if not settings.CLAUDE_API_KEY:
-        logger.warning("CLAUDE_API_KEY not set, using fallback")
+    if not settings.AI_API_KEY:
+        logger.warning("AI_API_KEY not set, using fallback")
         return fallback_content or {}, True
 
-    client = Anthropic(api_key=settings.CLAUDE_API_KEY)
+    client = AsyncOpenAI(
+        api_key=settings.AI_API_KEY,
+        base_url=settings.AI_BASE_URL,
+    )
 
     for attempt in range(2):
         start_time = time.time()
         try:
-            response = await asyncio.wait_for(
-                asyncio.to_thread(
-                    client.messages.create,
-                    model="claude-sonnet-4-20250514",
-                    max_tokens=1024,
-                    messages=[{"role": "user", "content": prompt}],
-                ),
+            response = await client.chat.completions.create(
+                model=settings.AI_MODEL,
+                max_tokens=1024,
+                messages=[{"role": "user", "content": prompt}],
                 timeout=10.0,
             )
 
             elapsed = time.time() - start_time
 
-            text = response.content[0].text
+            text = response.choices[0].message.content or ""
 
             if "```json" in text:
                 text = text.split("```json")[1].split("```")[0]
@@ -199,7 +198,12 @@ async def generate_content(
                     continue
                 return fallback_content or {}, True
 
-            logger.info(f"AI generation succeeded in {elapsed:.2f}s, input_tokens={response.usage.input_tokens}, output_tokens={response.usage.output_tokens}")
+            usage = response.usage
+            logger.info(
+                f"AI generation succeeded in {elapsed:.2f}s, "
+                f"input_tokens={usage.prompt_tokens if usage else 0}, "
+                f"output_tokens={usage.completion_tokens if usage else 0}"
+            )
             return data, False
 
         except APITimeoutError:
@@ -212,10 +216,6 @@ async def generate_content(
                 continue
         except (json.JSONDecodeError, KeyError, IndexError) as e:
             logger.warning(f"AI output parse error (attempt {attempt + 1}): {e}")
-            if attempt == 0:
-                continue
-        except asyncio.TimeoutError:
-            logger.warning(f"AI async timeout (attempt {attempt + 1})")
             if attempt == 0:
                 continue
 

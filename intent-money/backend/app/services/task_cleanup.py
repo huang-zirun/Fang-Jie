@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone, timedelta
 
-from sqlalchemy import select, update
+from sqlalchemy import update
 
 from app.database import async_session_factory
 from app.models.content_task import ContentTask

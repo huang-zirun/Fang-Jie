@@ -53,7 +53,7 @@ async def diagnose_performance(
 ) -> DiagnosisResult:
     result = await db.execute(
         select(OptimizationRule)
-        .where(OptimizationRule.is_active == True)
+        .where(OptimizationRule.is_active.is_(True))
         .order_by(OptimizationRule.priority.desc())
     )
     rules = result.scalars().all()

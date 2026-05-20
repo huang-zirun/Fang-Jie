@@ -1,8 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import DateTime, ForeignKey, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -11,8 +10,8 @@ from app.database import Base
 class DiagnosisResult(Base):
     __tablename__ = "diagnosis_results"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    task_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("content_tasks.id", ondelete="CASCADE"), nullable=False, index=True, unique=True)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    task_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("content_tasks.id", ondelete="CASCADE"), nullable=False, index=True, unique=True)
     problem_type: Mapped[str] = mapped_column(String(30), nullable=False)
     problem_desc: Mapped[str] = mapped_column(String(200), nullable=False)
     optimization_direction: Mapped[str] = mapped_column(String(100), nullable=False)

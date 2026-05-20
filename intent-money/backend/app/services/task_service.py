@@ -83,7 +83,6 @@ async def generate_task(
     else:
         logger.warning(f"No content structure found for intent={intent_id}, platform={platform_id}")
         content = FIXED_TEMPLATE.copy()
-        is_fallback = True
 
     is_optimized = optimization_prompt is not None
     optimization_note = None
@@ -126,7 +125,7 @@ async def match_content_structure(
         .where(
             ContentStructure.intent_id == intent_id,
             ContentStructure.platform_id == platform_id,
-            ContentStructure.is_active == True,
+            ContentStructure.is_active.is_(True),
         )
         .order_by(ContentStructure.priority.desc())
     )
