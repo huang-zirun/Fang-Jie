@@ -9,9 +9,9 @@
 ## 技术栈
 - 前端：Vue 3 + TypeScript + Vant 4 + Pinia + Vite
 - 后端：FastAPI (Python 3.11+) + SQLAlchemy + Alembic
-- 数据库：PostgreSQL 15+
-- AI：Claude API (claude-sonnet-4-20250514)
-- 部署：Docker Compose (FastAPI + PostgreSQL + Nginx)
+- 数据库：SQLite (aiosqlite 异步驱动)
+- AI：DeepSeek V4 Flash via OpenRouter API（openai SDK AsyncOpenAI）
+- 部署：Docker Compose (FastAPI + Nginx，无独立数据库容器)
 - 包管理：uv (Python), pnpm (前端)
 
 ## MVP 范围
