@@ -1,6 +1,5 @@
-import pytest
 
-from app.services.ai_service import _validate_output, BANNED_PHRASES
+from app.services.ai_service import _validate_output
 
 
 def test_validate_output_valid():

@@ -8,7 +8,7 @@ dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "sqlalchemy[asyncio]",
-    "asyncpg",
+    "aiosqlite",
     "alembic",
     "pydantic-settings",
     "python-jose[cryptography]",
@@ -16,7 +16,7 @@ dependencies = [
     "python-multipart",
     "httpx",
     "structlog",
-    "anthropic>=0.103.1",
+    "openai>=1.0.0",
 ]
 
 [dependency-groups]
