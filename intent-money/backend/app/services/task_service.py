@@ -1,3 +1,4 @@
+import logging
 import random as _random
 import uuid
 from datetime import datetime, timezone
@@ -10,6 +11,8 @@ from app.models.content_task import ContentTask
 from app.models.intent import Intent
 from app.models.platform import Platform
 from app.services.ai_service import generate_content
+
+logger = logging.getLogger(__name__)
 
 
 FIXED_TEMPLATE = {
@@ -78,13 +81,15 @@ async def generate_task(
             task_type=task_type,
         )
     else:
+        logger.warning(f"No content structure found for intent={intent_id}, platform={platform_id}")
         content = FIXED_TEMPLATE.copy()
         is_fallback = True
 
     is_optimized = optimization_prompt is not None
     optimization_note = None
-    if is_optimized and structure:
-        optimization_note = f"已基于上条内容诊断优化，使用{structure.hook_type}结构"
+    if is_optimized and optimization_prompt:
+        hook_desc = structure.hook_type if structure else "默认"
+        optimization_note = f"已针对上次问题优化：{optimization_prompt[:50]}。当前使用{hook_desc}结构"
 
     task = ContentTask(
         user_id=user_id,

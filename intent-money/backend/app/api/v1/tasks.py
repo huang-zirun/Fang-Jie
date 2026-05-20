@@ -20,6 +20,16 @@ from app.services.task_service import generate_task, get_current_task
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
+@router.post("/cleanup/expired")
+async def cleanup_expired_tasks(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from app.services.task_cleanup import expire_old_tasks
+    count = await expire_old_tasks()
+    return {"expired_count": count}
+
+
 @router.post("", response_model=TaskOut)
 async def create_task(
     data: TaskCreate,
