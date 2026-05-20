@@ -12,6 +12,15 @@
         </div>
       </div>
 
+      <div v-if="task.is_optimized" class="optimization-banner">
+        <van-notice-bar
+          text="🔧 这条内容已针对上次问题优化"
+          background="#ecfdf5"
+          color="#059669"
+          left-icon="info-o"
+        />
+      </div>
+
       <div class="why-it-works">
         <van-notice-bar :text="`💡 ${task.why_it_works}`" background="#f0f9ff" color="#0369a1" />
       </div>
@@ -86,6 +95,17 @@
         <van-icon name="checked" color="#07c160" size="20" />
         <span>已发布，等待数据回填</span>
       </div>
+      <van-button
+        v-if="task?.status === 'PUBLISHED'"
+        type="success"
+        block
+        round
+        size="large"
+        style="margin-top: 8px"
+        @click="router.push(`/report/${task.id}`)"
+      >
+        回填数据
+      </van-button>
       <van-button
         v-if="task?.status === 'PENDING'"
         plain
@@ -212,6 +232,10 @@ const handleSwap = async () => {
 .platform-tag {
   display: flex;
   align-items: center;
+}
+
+.optimization-banner {
+  margin-bottom: 12px;
 }
 
 .why-it-works {

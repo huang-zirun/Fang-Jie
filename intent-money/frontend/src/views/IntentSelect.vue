@@ -30,7 +30,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast, showLoadingToast, closeToast } from 'vant'
-import { getIntents, createTask } from '../api/tasks'
+import { getIntents, createTask, getCurrentTask } from '../api/tasks'
 
 interface Intent {
   id: string
@@ -70,7 +70,13 @@ const selectIntent = async (intent: Intent) => {
   } catch (e: any) {
     const detail = e?.response?.data?.detail
     if (detail === 'Has pending task') {
-      showToast('你已有未完成的任务')
+      try {
+        const taskRes = await getCurrentTask()
+        const existingTask = taskRes.data.task || taskRes.data
+        router.push(`/task/${existingTask.id}`)
+      } catch {
+        showToast('你已有未完成的任务')
+      }
     } else {
       showToast('生成失败，请重试')
     }
