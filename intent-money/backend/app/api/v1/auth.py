@@ -1,4 +1,3 @@
-import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -9,7 +8,7 @@ from app.database import get_db
 from app.models.user import User
 from app.schemas.auth import AnonymousRegisterResponse
 from app.services.auth_service import create_anonymous_user
-from app.utils.security import create_access_token, verify_token
+from app.utils.security import create_access_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
