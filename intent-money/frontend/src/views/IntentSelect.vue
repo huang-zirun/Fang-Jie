@@ -1,18 +1,19 @@
 <template>
   <div class="intent-page">
     <div class="intent-header">
-      <h1 class="intent-title">今天你想怎么赚钱？</h1>
-      <p class="intent-subtitle">选择一个目标，系统给你今天要做的事</p>
+      <h1 class="intent-title">今天你想通过什么方式赚钱？</h1>
+      <p class="intent-subtitle">选一个赚钱目标，系统帮你搞定一切</p>
     </div>
     <div class="intent-grid">
       <div
-        v-for="intent in intents"
+        v-for="(intent, index) in intents"
         :key="intent.id"
         class="intent-card"
-        :class="{ active: intent.is_active, disabled: !intent.is_active }"
-        @click="intent.is_active && selectIntent(intent)"
+        :style="{ animationDelay: `${index * 50}ms`, '--intent-color': getIntentColor(intent.sort_order) }"
+        @click="selectIntent(intent)"
       >
-        <div class="intent-icon">
+        <div class="intent-stripe" :style="{ background: getIntentColor(intent.sort_order) }"></div>
+        <div class="intent-icon" :style="{ color: getIntentColor(intent.sort_order) }">
           <span v-if="intent.sort_order === 1">🎯</span>
           <span v-else-if="intent.sort_order === 2">💰</span>
           <span v-else-if="intent.sort_order === 3">🔗</span>
@@ -20,17 +21,31 @@
         </div>
         <div class="intent-name">{{ intent.name }}</div>
         <div class="intent-desc">{{ intent.description }}</div>
-        <div v-if="!intent.is_active" class="intent-badge">即将开放</div>
       </div>
     </div>
+    <Transition name="overlay-fade">
+      <div v-if="showFeedback" class="feedback-overlay" @click.self="dismissFeedback">
+        <div class="feedback-card">
+          <div class="feedback-icon">✨</div>
+          <div class="feedback-text">我已基于当前平台+实时同类爆款数据，为你生成了今天最优赚钱动作方案</div>
+        </div>
+      </div>
+    </Transition>
+
+    <div class="history-entry" @click="router.push('/history')">
+      <van-icon name="clock-o" size="16" />
+      <span>查看历史任务</span>
+    </div>
+
+    <div class="admin-entry" @click="router.push('/admin')">管理后台</div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { showToast, showLoadingToast, closeToast } from 'vant'
-import { getIntents, createTask, getCurrentTask } from '../api/tasks'
+import { showToast } from 'vant'
+import { getIntents } from '../api/tasks'
 
 interface Intent {
   id: string
@@ -43,6 +58,18 @@ interface Intent {
 const router = useRouter()
 const intents = ref<Intent[]>([])
 const loading = ref(false)
+const showFeedback = ref(false)
+const selectedIntentId = ref('')
+
+const getIntentColor = (sortOrder: number): string => {
+  const colorMap: Record<number, string> = {
+    1: '#FF2442',
+    2: '#FF8C00',
+    3: '#4A90D9',
+    4: '#8B5CF6',
+  }
+  return colorMap[sortOrder] || '#FF2442'
+}
 
 onMounted(async () => {
   loading.value = true
@@ -56,32 +83,19 @@ onMounted(async () => {
   }
 })
 
-const selectIntent = async (intent: Intent) => {
-  const toast = showLoadingToast({ message: '生成任务中...', forbidClick: true, duration: 0 })
-  try {
-    const DOUYIN_ID = '10000000-0000-0000-0000-000000000001'
-    const res = await createTask({
-      intent_id: intent.id,
-      platform_id: DOUYIN_ID,
-      task_type: 'video',
-    })
-    const task = res.data.task || res.data
-    router.push(`/task/${task.id}`)
-  } catch (e: any) {
-    const detail = e?.response?.data?.detail
-    if (detail === 'Has pending task') {
-      try {
-        const taskRes = await getCurrentTask()
-        const existingTask = taskRes.data.task || taskRes.data
-        router.push(`/task/${existingTask.id}`)
-      } catch {
-        showToast('你已有未完成的任务')
-      }
-    } else {
-      showToast('生成失败，请重试')
-    }
-  } finally {
-    closeToast()
+const selectIntent = (intent: Intent) => {
+  selectedIntentId.value = intent.id
+  showFeedback.value = true
+  setTimeout(() => {
+    showFeedback.value = false
+    router.push(`/platform/${intent.id}`)
+  }, 1500)
+}
+
+const dismissFeedback = () => {
+  showFeedback.value = false
+  if (selectedIntentId.value) {
+    router.push(`/platform/${selectedIntentId.value}`)
   }
 }
 </script>
@@ -89,84 +103,167 @@ const selectIntent = async (intent: Intent) => {
 <style scoped>
 .intent-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 60px 20px 40px;
+  background: var(--xh-bg-primary);
+  padding: 48px 16px 40px;
 }
 
 .intent-header {
-  text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 32px;
 }
 
 .intent-title {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
-  color: #fff;
-  margin: 0 0 12px;
+  color: var(--xh-text-primary);
+  margin: 0 0 8px;
+  letter-spacing: -0.5px;
 }
 
 .intent-subtitle {
-  font-size: 15px;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  color: var(--xh-text-tertiary);
   margin: 0;
 }
 
 .intent-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 12px;
 }
 
 .intent-card {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 16px;
-  padding: 24px 16px;
+  background: var(--xh-bg-primary);
+  border-radius: var(--radius-card);
+  padding: 28px 16px 20px;
   text-align: center;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
-}
-
-.intent-card.active {
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--xh-border);
   cursor: pointer;
+  opacity: 0;
+  transform: translateY(16px);
+  animation: cardEnter 0.4s ease forwards;
 }
 
-.intent-card.active:active {
+@keyframes cardEnter {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.intent-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-float);
+}
+
+.intent-card:active {
   transform: scale(0.97);
-  background: rgba(255, 255, 255, 1);
 }
 
-.intent-card.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.intent-stripe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
 }
 
 .intent-icon {
   font-size: 40px;
   margin-bottom: 12px;
+  line-height: 1;
 }
 
 .intent-name {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 8px;
+  color: var(--xh-text-primary);
+  margin-bottom: 6px;
 }
 
 .intent-desc {
-  font-size: 13px;
-  color: #666;
+  font-size: 12px;
+  color: var(--xh-text-tertiary);
   line-height: 1.4;
 }
 
-.intent-badge {
-  position: absolute;
-  top: 8px;
-  right: -20px;
-  background: #eee;
-  color: #999;
-  font-size: 11px;
-  padding: 2px 24px;
-  transform: rotate(45deg);
+.feedback-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 32px;
+}
+
+.feedback-card {
+  background: var(--xh-bg-primary);
+  border-radius: var(--radius-card);
+  padding: 32px 24px;
+  text-align: center;
+  box-shadow: var(--shadow-float);
+  max-width: 320px;
+  width: 100%;
+}
+
+.feedback-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  line-height: 1;
+}
+
+.feedback-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--xh-text-primary);
+  line-height: 1.6;
+}
+
+.overlay-fade-enter-active,
+.overlay-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.overlay-fade-enter-from,
+.overlay-fade-leave-to {
+  opacity: 0;
+}
+
+.history-entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 24px;
+  padding: 12px;
+  color: var(--xh-text-tertiary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.history-entry:active {
+  color: var(--xh-brand);
+}
+
+.admin-entry {
+  text-align: center;
+  margin-top: 16px;
+  padding: 8px;
+  color: #ccc;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.admin-entry:active {
+  color: var(--xh-text-tertiary);
 }
 </style>

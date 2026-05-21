@@ -1,7 +1,9 @@
 from app.models.content_structure import ContentStructure
 from app.models.content_task import ContentTask
+from app.models.conversion_path import ConversionPath
 from app.models.diagnosis_result import DiagnosisResult
 from app.models.intent import Intent
+from app.models.market_hot import MarketHot
 from app.models.optimization_rule import OptimizationRule
 from app.models.performance_report import PerformanceReport
 from app.models.platform import Platform
@@ -15,7 +17,9 @@ __all__ = [
     "Platform",
     "ContentStructure",
     "ContentTask",
+    "ConversionPath",
     "PerformanceReport",
     "DiagnosisResult",
     "OptimizationRule",
+    "MarketHot",
 ]

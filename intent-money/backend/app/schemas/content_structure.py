@@ -13,6 +13,7 @@ class ContentStructureCreate(BaseModel):
     prompt_template: str
     fallback_content: dict
     priority: int = 0
+    market_score: float = 0.0
 
 
 class ContentStructureOut(BaseModel):
@@ -25,6 +26,7 @@ class ContentStructureOut(BaseModel):
     prompt_template: str
     fallback_content: dict
     priority: int
+    market_score: float
     is_active: bool
     created_at: datetime
 
@@ -38,4 +40,5 @@ class ContentStructureUpdate(BaseModel):
     prompt_template: str | None = None
     fallback_content: dict | None = None
     priority: int | None = None
+    market_score: float | None = None
     is_active: bool | None = None

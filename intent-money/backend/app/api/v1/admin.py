@@ -10,6 +10,10 @@ from app.models.content_structure import ContentStructure
 from app.models.content_task import ContentTask
 from app.models.optimization_rule import OptimizationRule
 from app.models.user import User
+from app.schemas.content_structure import (
+    ContentStructureCreate,
+    ContentStructureOut,
+)
 from app.schemas.optimization_rule import (
     OptimizationRuleCreate,
     OptimizationRuleOut,
@@ -138,3 +142,58 @@ async def get_prompt_templates(
     )
     templates = [{"id": str(row.id), "hook_type": row.hook_type, "prompt_template": row.prompt_template} for row in result.all()]
     return {"templates": templates}
+
+
+@router.post("/content-structures/batch", response_model=list[ContentStructureOut])
+async def batch_create_content_structures(
+    items: list[ContentStructureCreate],
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    structures = []
+    for item in items:
+        structure = ContentStructure(**item.model_dump(), is_active=True)
+        db.add(structure)
+        structures.append(structure)
+    await db.commit()
+    for s in structures:
+        await db.refresh(s)
+    return structures
+
+
+@router.post("/evolution/adjust-weights")
+async def trigger_adjust_weights(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from app.services.evolution_service import adjust_rule_weights
+    result = await adjust_rule_weights(db)
+    return result
+
+
+@router.get("/evolution/stats")
+async def get_evolution_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(OptimizationRule).order_by(OptimizationRule.priority.desc())
+    )
+    rules = result.scalars().all()
+
+    stats = []
+    for rule in rules:
+        accuracy_rate = None
+        if rule.hit_count > 0:
+            accuracy_rate = round(rule.accuracy_count / rule.hit_count, 4)
+        stats.append({
+            "rule_id": str(rule.id),
+            "name": rule.name,
+            "problem_type": rule.problem_type,
+            "hit_count": rule.hit_count,
+            "accuracy_count": rule.accuracy_count,
+            "accuracy_rate": accuracy_rate,
+            "priority": rule.priority,
+        })
+
+    return {"stats": stats}

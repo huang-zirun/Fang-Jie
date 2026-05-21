@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, Uuid, func
+from sqlalchemy import DateTime, Float, ForeignKey, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -16,6 +16,8 @@ class DiagnosisResult(Base):
     problem_desc: Mapped[str] = mapped_column(String(200), nullable=False)
     optimization_direction: Mapped[str] = mapped_column(String(100), nullable=False)
     optimization_detail: Mapped[str] = mapped_column(Text, nullable=False)
+    ai_analysis: Mapped[str | None] = mapped_column(Text, nullable=True)
+    rule_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     diagnosed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     task = relationship("ContentTask", back_populates="diagnosis", foreign_keys="ContentTask.diagnosis_id")

@@ -12,12 +12,12 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Noto Sans SC',
+    'Helvetica Neue', sans-serif;
   font-size: 14px;
   line-height: 1.6;
-  color: #323233;
-  background-color: #f7f8fa;
+  color: var(--xh-text-primary);
+  background-color: var(--xh-bg-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -30,4 +30,26 @@ a {
 img {
   max-width: 100%;
   height: auto;
+}
+
+:root {
+  --xh-bg-primary: #ffffff;
+  --xh-bg-secondary: #f7f7f7;
+  --xh-bg-tertiary: #f2f2f2;
+  --xh-brand: #ff2442;
+  --xh-brand-light: #fff0f2;
+  --xh-text-primary: #333333;
+  --xh-text-secondary: #666666;
+  --xh-text-tertiary: #999999;
+  --xh-border: #eeeeee;
+  --xh-success: #07c160;
+  --xh-warning: #ff9900;
+
+  --radius-card: 16px;
+  --radius-button: 24px;
+  --radius-input: 12px;
+  --radius-tag: 8px;
+
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.04);
+  --shadow-float: 0 4px 20px rgba(0, 0, 0, 0.08);
 }

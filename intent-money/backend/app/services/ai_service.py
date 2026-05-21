@@ -33,12 +33,36 @@ def _build_prompt(
     conversion_structure: dict,
     optimization_prompt: str | None = None,
     task_type: str = "video",
+    conversion_scripts: dict | None = None,
 ) -> str:
+    _INTENT_TASK_MAP = {
+        "引流拿客户": "生成一条以引流获客为目标的短视频内容任务",
+        "成交赚钱": "生成一条以促单成交为目标的短视频内容任务，重点突出产品价值和购买理由",
+        "裂变招募分销": "生成一条以招募分销商为目标的短视频内容任务，重点突出低门槛和高收益",
+        "IP长期增长": "生成一条以打造个人品牌为目标的短视频内容任务，重点突出专业性和人设辨识度",
+    }
+    _INTENT_AUDIENCE_MAP = {
+        "引流拿客户": "对袜子有需求的普通消费者，尤其是注重性价比和实用性的群体",
+        "成交赚钱": "已有购买意向但犹豫不决的消费者，需要最后的推动力促使其下单",
+        "裂变招募分销": "想找副业赚钱的人群，尤其是宝妈、学生、自由职业者",
+        "IP长期增长": "对袜子行业感兴趣的关注者，希望获得专业建议和生活方式灵感",
+    }
+    _INTENT_WHY_MAP = {
+        "引流拿客户": "一句话说明为什么这条内容能吸引流量",
+        "成交赚钱": "一句话说明为什么这条内容能促成购买",
+        "裂变招募分销": "一句话说明为什么这条内容能吸引人加入分销",
+        "IP长期增长": "一句话说明为什么这条内容能增强个人品牌影响力",
+    }
+
+    task_desc = _INTENT_TASK_MAP.get(intent_name, f"基于以下内容结构模板，生成一条完整的{'短视频' if task_type == 'video' else '图文笔记'}内容任务。")
+    audience = _INTENT_AUDIENCE_MAP.get(intent_name, "对袜子有需求的普通消费者")
+    why_desc = _INTENT_WHY_MAP.get(intent_name, "一句话说明为什么这条内容有效")
+
     parts = [
         "你是一名袜子分销内容策划专家。",
         "",
         "## 任务",
-        "基于以下内容结构模板，生成一条完整的短视频内容任务。" if task_type == "video" else "基于以下内容结构模板，生成一条完整的图文笔记内容任务。",
+        task_desc if task_type == "video" else task_desc.replace("短视频", "图文笔记"),
         "",
         "## 用户意图",
         f"{intent_name}：{intent_description}",
@@ -53,7 +77,7 @@ def _build_prompt(
         "图文笔记（图片+文案，无需拍摄视频）" if task_type == "image" else "短视频（需要拍摄）",
         "",
         "## 目标人群",
-        "对袜子有需求的普通消费者，尤其是注重性价比和实用性的群体",
+        audience,
         "",
         "## 内容结构模板",
         f"- 钩子类型：{hook_type}",
@@ -67,6 +91,26 @@ def _build_prompt(
             "## 优化约束",
             optimization_prompt,
         ])
+
+    if conversion_scripts:
+        stage_labels = {
+            "public_to_private": "公域转私域",
+            "private_to_deal": "私域转成交",
+            "deal_boost": "成交提升",
+        }
+        script_lines = ["", "## 转化路径话术参考", "以下是该意图的转化路径话术，请在生成内容时参考这些话术风格和引导方式："]
+        for stage_key, stage_label in stage_labels.items():
+            items = conversion_scripts.get(stage_key, [])
+            if items:
+                script_lines.append(f"### {stage_label}")
+                for item in items:
+                    s = item.get("scripts", {})
+                    opener = s.get("opener", "")
+                    guide = s.get("guide", "")
+                    close = s.get("close", "")
+                    script_lines.append(f"- {item.get('title', '')}: {opener} / {guide} / {close}")
+        if len(script_lines) > 3:
+            parts.extend(script_lines)
 
     if task_type == "image":
         storyboard_example = [
@@ -97,7 +141,7 @@ def _build_prompt(
             "script_text": "完整口播文案，100-200字",
             "title": "发布标题，含2-3个话题标签",
             "comment_template": "评论区置顶话术，引导私信或互动",
-            "why_it_works": "一句话说明为什么这条内容能赚钱"
+            "why_it_works": why_desc
         }, ensure_ascii=False, indent=2),
         "```",
     ])
@@ -149,6 +193,7 @@ async def generate_content(
     optimization_prompt: str | None = None,
     fallback_content: dict | None = None,
     task_type: str = "video",
+    conversion_scripts: dict | None = None,
 ) -> tuple[dict, bool]:
     prompt = _build_prompt(
         intent_name=intent_name,
@@ -159,6 +204,7 @@ async def generate_content(
         conversion_structure=conversion_structure,
         optimization_prompt=optimization_prompt,
         task_type=task_type,
+        conversion_scripts=conversion_scripts,
     )
 
     if not settings.AI_API_KEY:

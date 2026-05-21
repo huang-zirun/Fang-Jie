@@ -18,3 +18,4 @@ class Intent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     structures = relationship("ContentStructure", back_populates="intent", lazy="selectin")
+    conversion_paths = relationship("ConversionPath", back_populates="intent")

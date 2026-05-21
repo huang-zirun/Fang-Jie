@@ -11,6 +11,7 @@ from app.models.content_task import ContentTask
 from app.models.intent import Intent
 from app.models.platform import Platform
 from app.services.ai_service import generate_content
+from app.services.conversion_service import get_conversion_scripts
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,8 @@ async def generate_task(
 
     structure = await match_content_structure(db, intent_id, platform_id)
 
+    conversion_scripts = await get_conversion_scripts(db, intent_id)
+
     if structure:
         content, is_fallback = await generate_content(
             intent_name=intent.name,
@@ -79,6 +82,7 @@ async def generate_task(
             optimization_prompt=optimization_prompt,
             fallback_content=structure.fallback_content,
             task_type=task_type,
+            conversion_scripts=conversion_scripts,
         )
     else:
         logger.warning(f"No content structure found for intent={intent_id}, platform={platform_id}")
@@ -120,6 +124,10 @@ async def match_content_structure(
     intent_id: uuid.UUID,
     platform_id: uuid.UUID,
 ) -> ContentStructure | None:
+    from datetime import datetime, timezone
+
+    from app.models.market_hot import MarketHot
+
     result = await db.execute(
         select(ContentStructure)
         .where(
@@ -127,12 +135,37 @@ async def match_content_structure(
             ContentStructure.platform_id == platform_id,
             ContentStructure.is_active.is_(True),
         )
-        .order_by(ContentStructure.priority.desc())
     )
     structures = result.scalars().all()
     if not structures:
         return None
-    return _random.choice(structures[:3]) if len(structures) > 1 else structures[0]
+
+    now = datetime.now(timezone.utc)
+    hot_result = await db.execute(
+        select(MarketHot).where(
+            MarketHot.platform_id == platform_id,
+            MarketHot.is_active.is_(True),
+            (MarketHot.expires_at.is_(None)) | (MarketHot.expires_at > now),
+        )
+    )
+    active_hots = hot_result.scalars().all()
+
+    boost_map: dict[str, float] = {}
+    for hot in active_hots:
+        if hot.recommended_structures:
+            for struct_name in hot.recommended_structures:
+                boost_map[struct_name] = boost_map.get(struct_name, 0.0) + hot.priority_boost
+
+    def _effective_score(s: ContentStructure) -> float:
+        boost = boost_map.get(s.hook_type, 0.0)
+        return s.priority * 0.6 + (s.market_score + boost) * 0.4
+
+    sorted_structures = sorted(
+        structures,
+        key=_effective_score,
+        reverse=True,
+    )
+    return _random.choice(sorted_structures[:3]) if len(sorted_structures) > 1 else sorted_structures[0]
 
 
 async def get_current_task(db: AsyncSession, user_id: uuid.UUID) -> ContentTask | None:

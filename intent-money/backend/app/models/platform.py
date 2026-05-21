@@ -14,3 +14,4 @@ class Platform(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     structures = relationship("ContentStructure", back_populates="platform", lazy="selectin")
+    market_hots = relationship("MarketHot", back_populates="platform")

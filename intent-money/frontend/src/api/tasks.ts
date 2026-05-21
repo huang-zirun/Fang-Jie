@@ -4,6 +4,10 @@ export function getIntents() {
   return request.get('/intents')
 }
 
+export function getPlatforms() {
+  return request.get('/platforms')
+}
+
 export function createTask(data: Record<string, unknown>) {
   return request.post('/tasks', data)
 }
@@ -30,4 +34,64 @@ export function getNextTask(taskId: string, data: Record<string, unknown>) {
 
 export function swapTask(taskId: string) {
   return request.post(`/tasks/${taskId}/swap`)
+}
+
+export function getTaskHistory(params?: Record<string, string>) {
+  return request.get('/tasks/history', { params })
+}
+
+export function getAdminStats() {
+  return request.get('/admin/stats')
+}
+
+export function getContentStructures() {
+  return request.get('/content-structures')
+}
+
+export function updateContentStructure(id: string, data: Record<string, unknown>) {
+  return request.put(`/content-structures/${id}`, data)
+}
+
+export function getConversionPaths(intentId?: string) {
+  const params: Record<string, string> = {}
+  if (intentId) params.intent_id = intentId
+  return request.get('/conversion-paths', { params })
+}
+
+export function createConversionPath(data: Record<string, unknown>) {
+  return request.post('/conversion-paths', data)
+}
+
+export function updateConversionPath(id: string, data: Record<string, unknown>) {
+  return request.put(`/conversion-paths/${id}`, data)
+}
+
+export function deleteConversionPath(id: string) {
+  return request.delete(`/conversion-paths/${id}`)
+}
+
+export function getMarketHots(platformId?: string) {
+  const params: Record<string, string> = {}
+  if (platformId) params.platform_id = platformId
+  return request.get('/market/hots', { params })
+}
+
+export function createMarketHot(data: Record<string, unknown>) {
+  return request.post('/market/hots', data)
+}
+
+export function analyzeMarket(platformId: string) {
+  return request.post('/market/analyze', { platform_id: platformId })
+}
+
+export function updateMarketScores() {
+  return request.post('/market/update-scores')
+}
+
+export function getEvolutionStats() {
+  return request.get('/admin/evolution/stats')
+}
+
+export function adjustRuleWeights() {
+  return request.post('/admin/evolution/adjust-weights')
 }

@@ -26,6 +26,8 @@ class DiagnosisOut(BaseModel):
     problem_desc: str
     optimization_direction: str
     optimization_detail: str
+    ai_analysis: str | None = None
+    rule_confidence: float | None = None
 
     model_config = {"from_attributes": True}
 
