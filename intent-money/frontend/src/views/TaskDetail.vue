@@ -134,15 +134,18 @@
         round
         size="large"
         color="var(--xh-brand)"
-        :loading="publishState === 'publishing'"
-        loading-text="发布中..."
-        @click="handlePublish"
+        :loading="publishState === 'confirming'"
+        loading-text="确认中..."
+        @click="handleManualConfirm"
       >
-        一键发布
+        确认已发放
       </van-button>
+      <div v-if="task?.status === 'PENDING'" class="manual-publish-hint">
+        复制话术并发到平台后，点这里进入数据回填
+      </div>
       <div v-else-if="task?.status === 'PUBLISHED'" class="published-status">
         <van-icon name="checked" color="var(--xh-success)" size="20" />
-        <span>已发布，等待数据回填</span>
+        <span>已发放，等待数据回填</span>
       </div>
       <van-button
         v-if="task?.status === 'PUBLISHED'"
@@ -164,6 +167,20 @@
         size="large"
         style="margin-top: 8px"
         color="var(--xh-brand)"
+        :loading="publishState === 'publishing'"
+        loading-text="发布中..."
+        @click="handlePublish"
+      >
+        自动发布
+      </van-button>
+      <van-button
+        v-if="task?.status === 'PENDING'"
+        plain
+        block
+        round
+        size="large"
+        style="margin-top: 8px"
+        color="var(--xh-brand)"
         @click="handleSwap"
       >
         换一条
@@ -176,7 +193,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast, showLoadingToast, closeToast, showConfirmDialog } from 'vant'
-import { getCurrentTask, publishTask, swapTask, autoPublish } from '../api/tasks'
+import { getTask, publishTask, swapTask, autoPublish } from '../api/tasks'
 import { track } from '../utils/tracker'
 
 interface StoryboardShot {
@@ -204,6 +221,7 @@ interface Task {
   prev_task_id: string | null
   status?: string
   created_at: string
+  published_at?: string | null
   intent_name?: string
   conversion_scripts?: Record<string, ConversionScriptItem[]> | null
 }
@@ -211,7 +229,7 @@ interface Task {
 const route = useRoute()
 const router = useRouter()
 const task = ref<Task | null>(null)
-const publishState = ref<'idle' | 'publishing' | 'success' | 'failed'>('idle')
+const publishState = ref<'idle' | 'publishing' | 'confirming' | 'success' | 'failed'>('idle')
 
 const dealScripts = computed<ConversionScriptItem[]>(() => {
   if (!task.value?.conversion_scripts) return []
@@ -239,7 +257,7 @@ const formatScripts = (scripts: Record<string, string> | string): string => {
 
 onMounted(async () => {
   try {
-    const res = await getCurrentTask()
+    const res = await getTask(route.params.id as string)
     task.value = res.data.task || res.data
   } catch (e) {
     showToast('加载任务失败')
@@ -256,18 +274,57 @@ const copyText = async (text: string, field?: string) => {
   }
 }
 
+const markTaskPublished = (message = '已确认发放') => {
+  if (!task.value) return
+  task.value.status = 'PUBLISHED'
+  task.value.published_at = new Date().toISOString()
+  publishState.value = 'success'
+  showToast({ message, icon: 'checked' })
+}
+
+const handleManualConfirm = async () => {
+  if (!task.value) return
+  try {
+    await showConfirmDialog({
+      title: '确认已发放？',
+      message: '确认你已经把内容发布到平台，系统会进入数据回填步骤。',
+      confirmButtonText: '确认已发放',
+      cancelButtonText: '取消',
+    })
+  } catch {
+    return
+  }
+
+  track('publish_clicked', {
+    page: `/task/${task.value.id}`,
+    metadata: { task_id: task.value.id, mode: 'manual_confirm' },
+  })
+  publishState.value = 'confirming'
+  const toast = showLoadingToast({ message: '确认中...', forbidClick: true, duration: 0 })
+  try {
+    await publishTask(task.value.id)
+    closeToast()
+    markTaskPublished()
+  } catch (e: any) {
+    const detail = e?.response?.data?.detail
+    showToast(detail || '确认失败')
+    publishState.value = 'idle'
+  } finally {
+    closeToast()
+  }
+}
+
 const handlePublish = async () => {
   if (!task.value) return
-  track('publish_clicked', { page: `/task/${task.value.id}`, metadata: { task_id: task.value.id } })
+  track('publish_clicked', { page: `/task/${task.value.id}`, metadata: { task_id: task.value.id, mode: 'auto' } })
   publishState.value = 'publishing'
   const toast = showLoadingToast({ message: '正在发布...', forbidClick: true, duration: 0 })
   try {
     const res = await autoPublish(task.value.id)
     const data = res.data
     if (data.success) {
-      task.value.status = 'PUBLISHED'
-      publishState.value = 'success'
-      showToast({ message: '发布成功', icon: 'checked' })
+      closeToast()
+      markTaskPublished('发布成功')
     } else if (data.fallback_to_manual) {
       publishState.value = 'failed'
       closeToast()
@@ -279,9 +336,8 @@ const handlePublish = async () => {
           cancelButtonText: '取消',
         })
         await publishTask(task.value.id)
-        task.value.status = 'PUBLISHED'
-        publishState.value = 'success'
-        showToast({ message: '已确认发布', icon: 'checked' })
+        closeToast()
+        markTaskPublished('已确认发放')
       } catch {
         publishState.value = 'idle'
       }
@@ -302,9 +358,8 @@ const handlePublish = async () => {
       const toast2 = showLoadingToast({ message: '确认中...', forbidClick: true, duration: 0 })
       try {
         await publishTask(task.value.id)
-        task.value.status = 'PUBLISHED'
-        publishState.value = 'success'
-        showToast({ message: '已确认发布', icon: 'checked' })
+        closeToast()
+        markTaskPublished('已确认发放')
       } catch (e2: any) {
         const detail2 = e2?.response?.data?.detail
         showToast(detail2 || '操作失败')
@@ -610,6 +665,14 @@ const handleSwap = async () => {
   padding: 12px;
   color: var(--xh-success);
   font-size: 15px;
+}
+
+.manual-publish-hint {
+  margin-top: 8px;
+  text-align: center;
+  color: var(--xh-text-tertiary);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .conversion-script-item {

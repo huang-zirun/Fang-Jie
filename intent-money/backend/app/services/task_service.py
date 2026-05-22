@@ -1,7 +1,6 @@
 import logging
 import random as _random
 import uuid
-from datetime import datetime, timezone
 
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +11,7 @@ from app.models.intent import Intent
 from app.models.platform import Platform
 from app.services.ai_service import generate_content
 from app.services.conversion_service import get_conversion_scripts
+from app.utils.time import utc_day_start_naive, utc_now_naive
 
 logger = logging.getLogger(__name__)
 
@@ -52,12 +52,12 @@ async def generate_task(
     if not platform or not platform.is_active:
         raise ValueError("Platform not available")
 
-    now = datetime.now(timezone.utc)
-    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = utc_day_start_naive()
     existing = await db.execute(
         select(ContentTask).where(
             and_(
                 ContentTask.user_id == user_id,
+                ContentTask.platform_id == platform_id,
                 ContentTask.status.in_(["PENDING", "PUBLISHED"]),
                 ContentTask.created_at >= today_start,
             )
@@ -124,8 +124,6 @@ async def match_content_structure(
     intent_id: uuid.UUID,
     platform_id: uuid.UUID,
 ) -> ContentStructure | None:
-    from datetime import datetime, timezone
-
     from app.models.market_hot import MarketHot
 
     result = await db.execute(
@@ -140,7 +138,7 @@ async def match_content_structure(
     if not structures:
         return None
 
-    now = datetime.now(timezone.utc)
+    now = utc_now_naive()
     hot_result = await db.execute(
         select(MarketHot).where(
             MarketHot.platform_id == platform_id,
@@ -168,12 +166,15 @@ async def match_content_structure(
     return _random.choice(sorted_structures[:3]) if len(sorted_structures) > 1 else sorted_structures[0]
 
 
-async def get_current_task(db: AsyncSession, user_id: uuid.UUID) -> ContentTask | None:
+async def get_current_task(db: AsyncSession, user_id: uuid.UUID, platform_id: uuid.UUID | None = None) -> ContentTask | None:
+    query = select(ContentTask).where(
+        ContentTask.user_id == user_id,
+        ContentTask.status.in_(["PENDING", "PUBLISHED"])
+    )
+    if platform_id:
+        query = query.where(ContentTask.platform_id == platform_id)
     result = await db.execute(
-        select(ContentTask)
-        .where(ContentTask.user_id == user_id, ContentTask.status != "EXPIRED")
-        .order_by(ContentTask.created_at.desc())
-        .limit(1)
+        query.order_by(ContentTask.created_at.desc()).limit(1)
     )
     return result.scalars().first()
 

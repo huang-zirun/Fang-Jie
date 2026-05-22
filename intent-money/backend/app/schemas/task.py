@@ -20,6 +20,7 @@ class StoryboardShot(BaseModel):
 class TaskOut(BaseModel):
     id: uuid.UUID
     platform_name: str = ""
+    status: str = "PENDING"
     hook_text: str
     storyboard: list[StoryboardShot]
     script_text: str
@@ -30,6 +31,7 @@ class TaskOut(BaseModel):
     optimization_note: str | None = None
     prev_task_id: uuid.UUID | None = None
     created_at: datetime
+    published_at: datetime | None = None
     intent_name: str | None = None
     conversion_scripts: dict | None = None
 

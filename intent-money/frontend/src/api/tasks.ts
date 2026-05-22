@@ -12,8 +12,14 @@ export function createTask(data: Record<string, unknown>) {
   return request.post('/tasks', data)
 }
 
-export function getCurrentTask() {
-  return request.get('/tasks/current')
+export function getCurrentTask(platformId?: string) {
+  const params: Record<string, string> = {}
+  if (platformId) params.platform_id = platformId
+  return request.get('/tasks/current', { params })
+}
+
+export function getTask(taskId: string) {
+  return request.get(`/tasks/${taskId}`)
 }
 
 export function publishTask(taskId: string) {

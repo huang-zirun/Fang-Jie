@@ -49,10 +49,11 @@
 - 定时任务：每日自动抓取爆款数据写入 market_hots 表
 - 降级策略：全链路 try/except，失败返回空列表/None，记录日志
 
-## 自动发布架构
+## 发布确认架构
 - auto_publisher.py: subprocess 调用 social-auto-upload
 - cookie_manager.py: Cookie 文件存储在 backend/cookies/ 目录，7天过期
-- 前端"一键发布"按钮：优先自动发布，失败降级手动发布
+- 任务详情页主入口为“确认已发放”：用户复制话术并手动发布到平台后，点击该按钮调用 `POST /api/v1/tasks/{id}/publish`，任务状态进入 `PUBLISHED`
+- 自动发布作为次级入口保留：优先尝试自动发布，失败后降级到手动确认
 
 ## 爆款结构提取架构
 - structure_extractor.py: AI（DeepSeek）分析爆款视频/笔记内容结构

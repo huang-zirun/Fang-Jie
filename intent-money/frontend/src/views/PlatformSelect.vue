@@ -16,7 +16,9 @@
         class="platform-card"
         @click="selectPlatform(platform)"
       >
-        <div class="platform-icon">{{ platform.icon }}</div>
+        <div class="platform-icon">
+          <PlatformIcon :platform="platform.name" :size="48" />
+        </div>
         <div class="platform-name">{{ platform.name }}</div>
         <div class="platform-desc">{{ platform.description }}</div>
       </div>
@@ -29,11 +31,11 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showToast, showLoadingToast, closeToast } from 'vant'
 import { getPlatforms, createTask, getCurrentTask } from '../api/tasks'
+import PlatformIcon from '../components/PlatformIcon.vue'
 
 interface Platform {
   id: string
   name: string
-  icon: string
   description: string
 }
 
@@ -46,14 +48,9 @@ onMounted(async () => {
   try {
     const res = await getPlatforms()
     const list = res.data.platforms || res.data
-    const iconMap: Record<string, string> = {
-      douyin: '🎵',
-      xiaohongshu: '📕',
-    }
     platforms.value = (list || []).map((p: any) => ({
       id: p.id,
       name: p.name,
-      icon: iconMap[p.code] || '📱',
       description: p.description,
     }))
   } catch {
@@ -75,7 +72,7 @@ const selectPlatform = async (platform: Platform) => {
     const detail = e?.response?.data?.detail
     if (detail === 'Has pending task') {
       try {
-        const taskRes = await getCurrentTask()
+        const taskRes = await getCurrentTask(platform.id)
         const existingTask = taskRes.data.task || taskRes.data
         router.push(`/task/${existingTask.id}`)
       } catch {

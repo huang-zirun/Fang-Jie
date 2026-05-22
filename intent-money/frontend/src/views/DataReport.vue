@@ -27,7 +27,7 @@
               name="play_count"
               type="digit"
               placeholder="请输入播放量"
-              :rules="[{ required: true, message: '请输入播放量' }]"
+              required
               class="custom-field"
             />
           </div>
@@ -38,7 +38,7 @@
               name="comment_count"
               type="digit"
               placeholder="请输入评论数"
-              :rules="[{ required: true, message: '请输入评论数' }]"
+              required
               class="custom-field"
             />
           </div>
@@ -49,7 +49,7 @@
               name="message_count"
               type="digit"
               placeholder="请输入私信数"
-              :rules="[{ required: true, message: '请输入私信数' }]"
+              required
               class="custom-field"
             />
           </div>
@@ -219,6 +219,10 @@ const formatDate = (dateStr: string) => {
 
 const handleSubmit = async () => {
   if (!task.value) return
+  if (!form.value.play_count || !form.value.comment_count || !form.value.message_count) {
+    showToast('请填写所有数据')
+    return
+  }
   submitting.value = true
   try {
     const res = await reportTask(task.value.id, {

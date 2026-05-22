@@ -22,6 +22,7 @@ from app.services.cookie_manager import (
     is_cookie_valid,
     save_cookie,
 )
+from app.utils.time import utc_now_naive
 
 router = APIRouter(prefix="/publish", tags=["publish"])
 
@@ -89,13 +90,12 @@ async def auto_publish_endpoint(
     )
 
     if pub_result["success"]:
-        from datetime import datetime, timezone
         from sqlalchemy import update
 
         await db.execute(
             update(ContentTask)
             .where(ContentTask.id == task_id)
-            .values(status="PUBLISHED", published_at=datetime.now(timezone.utc))
+            .values(status="PUBLISHED", published_at=utc_now_naive())
         )
         await db.commit()
 

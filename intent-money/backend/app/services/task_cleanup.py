@@ -1,16 +1,17 @@
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import timedelta
 
 from sqlalchemy import update
 
 from app.database import async_session_factory
 from app.models.content_task import ContentTask
+from app.utils.time import utc_now_naive
 
 logger = logging.getLogger(__name__)
 
 
 async def expire_old_tasks():
-    now = datetime.now(timezone.utc)
+    now = utc_now_naive()
     cutoff_48h = now - timedelta(hours=48)
 
     async with async_session_factory() as db:

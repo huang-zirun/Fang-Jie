@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, update
@@ -19,6 +18,7 @@ from app.schemas.task import TaskCreate, TaskOut, TaskHistoryOut
 from app.services.diagnosis_service import diagnose_performance
 from app.services.task_service import generate_task, get_current_task
 from app.services.conversion_service import get_conversion_scripts
+from app.utils.time import utc_day_start_naive, utc_now_naive
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -42,6 +42,7 @@ async def _build_task_out(db: AsyncSession, task) -> TaskOut:
     return TaskOut(
         id=task.id,
         platform_name=platform_row.name if platform_row else "",
+        status=task.status,
         hook_text=task.hook_text,
         storyboard=task.storyboard,
         script_text=task.script_text,
@@ -52,6 +53,7 @@ async def _build_task_out(db: AsyncSession, task) -> TaskOut:
         optimization_note=task.optimization_note,
         prev_task_id=task.prev_task_id,
         created_at=task.created_at,
+        published_at=task.published_at,
         intent_name=intent_name,
         conversion_scripts=conversion_scripts,
     )
@@ -157,7 +159,7 @@ async def create_task(
     except ValueError as e:
         error_msg = str(e)
         if error_msg == "HAS_PENDING_TASK":
-            existing = await get_current_task(db, current_user.id)
+            existing = await get_current_task(db, current_user.id, data.platform_id)
             if existing:
                 return await _build_task_out(db, existing)
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Has pending task")
@@ -177,12 +179,31 @@ async def create_task(
 
 @router.get("/current", response_model=TaskOut)
 async def get_current_task_api(
+    platform_id: uuid.UUID | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    task = await get_current_task(db, current_user.id)
+    task = await get_current_task(db, current_user.id, platform_id)
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No current task")
+
+    return await _build_task_out(db, task)
+
+
+@router.get("/{task_id}", response_model=TaskOut)
+async def get_task(
+    task_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(ContentTask).where(ContentTask.id == task_id)
+    )
+    task = result.scalars().first()
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    if task.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your task")
 
     return await _build_task_out(db, task)
 
@@ -207,7 +228,7 @@ async def publish_task(
     await db.execute(
         update(ContentTask)
         .where(ContentTask.id == task_id)
-        .values(status="PUBLISHED", published_at=datetime.now(timezone.utc))
+        .values(status="PUBLISHED", published_at=utc_now_naive())
     )
     await db.commit()
 
@@ -229,8 +250,7 @@ async def swap_task(
     if task.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your task")
 
-    now = datetime.now(timezone.utc)
-    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = utc_day_start_naive()
 
     swap_count_today = 0
     if task.created_at and task.created_at >= today_start:
