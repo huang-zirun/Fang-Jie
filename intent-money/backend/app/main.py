@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import router as v1_router
 from app.database import async_session_factory, engine, Base
+from app.models import ExtractedStructure  # noqa: F401
+from app.models.user_event import UserEvent  # noqa: F401
 from app.seed import PLATFORM_ID_DOUYIN, PLATFORM_ID_XIAOHONGSHU, seed_all
 
 logger = logging.getLogger(__name__)
@@ -22,6 +24,19 @@ async def daily_market_analysis():
                     await analyze_market_trend(db, platform_id)
         except Exception as e:
             logger.error(f"Market analysis failed: {e}")
+
+
+async def daily_scrape_hot_videos():
+    while True:
+        await asyncio.sleep(86400)
+        try:
+            async with async_session_factory() as db:
+                from app.services.market_service import scrape_and_save_hot_videos
+                keywords = ["袜子", "好物推荐", "穿搭", "生活好物"]
+                for keyword in keywords:
+                    await scrape_and_save_hot_videos(db, PLATFORM_ID_DOUYIN, keyword)
+        except Exception as e:
+            logger.error(f"Daily scrape hot videos failed: {e}")
 
 
 async def weekly_evolution():
@@ -42,6 +57,7 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     await seed_all()
     asyncio.create_task(daily_market_analysis())
+    asyncio.create_task(daily_scrape_hot_videos())
     asyncio.create_task(weekly_evolution())
     yield
 

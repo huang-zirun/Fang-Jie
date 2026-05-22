@@ -9,7 +9,22 @@ class Settings(BaseSettings):
     AI_API_KEY: str | None = None
     AI_BASE_URL: str = "https://openrouter.ai/api/v1"
     AI_MODEL: str = "deepseek/deepseek-chat-v3-0324:free"
+    XHS_COOKIE: str = ""
     ENV: str = "development"
+    SMS_GATEWAY: str = ""
+    SMS_ACCESS_KEY: str = ""
+    SMS_SECRET_KEY: str = ""
+    SMS_SIGN_NAME: str = ""
+    SMS_TEMPLATE_CODE: str = ""
+    SMS_ENABLED: bool = False
+    DOUYIN_COOKIE: str = ""
+    SCRAPER_TIMEOUT: int = 30
+    SCRAPER_ENABLED: bool = True
+    SENTIMENT_ENABLED: bool = True
+    AUTO_PUBLISH_ENABLED: bool = False
+    SOCIAL_AUTO_UPLOAD_PATH: str = ""
+    COOKIE_DIR: str = "cookies"
+    COOKIE_EXPIRE_DAYS: int = 7
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
