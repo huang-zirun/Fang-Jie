@@ -19,6 +19,7 @@ class MarketHot(Base):
     priority_boost: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    comment_sentiment: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     platform = relationship("Platform", back_populates="market_hots")

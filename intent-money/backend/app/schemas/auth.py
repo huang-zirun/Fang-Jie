@@ -8,3 +8,7 @@ class AnonymousRegisterResponse(BaseModel):
     user_id: uuid.UUID
     token: str
     expires_at: datetime
+
+
+class SendCodeRequest(BaseModel):
+    phone: str
