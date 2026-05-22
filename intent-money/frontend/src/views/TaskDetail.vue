@@ -32,7 +32,7 @@
         <div class="card-header">
           <div class="card-bar" style="background: var(--xh-brand)"></div>
           <h3 class="card-title">3秒钩子</h3>
-          <button class="copy-btn" @click="copyText(task.hook_text)">复制</button>
+          <button class="copy-btn" @click="copyText(task.hook_text, 'hook_text')">复制</button>
         </div>
         <div class="hook-content">"{{ task.hook_text }}"</div>
       </div>
@@ -57,7 +57,7 @@
         <div class="card-header">
           <div class="card-bar" style="background: #06b6d4"></div>
           <h3 class="card-title">口播文案</h3>
-          <button class="copy-btn" @click="copyText(task.script_text)">复制</button>
+          <button class="copy-btn" @click="copyText(task.script_text, 'script_text')">复制</button>
         </div>
         <div class="script-content">{{ task.script_text }}</div>
       </div>
@@ -66,7 +66,7 @@
         <div class="card-header">
           <div class="card-bar" style="background: #f59e0b"></div>
           <h3 class="card-title">发布标题</h3>
-          <button class="copy-btn" @click="copyText(task.title)">复制</button>
+          <button class="copy-btn" @click="copyText(task.title, 'title')">复制</button>
         </div>
         <div class="title-content">{{ task.title }}</div>
       </div>
@@ -75,7 +75,7 @@
         <div class="card-header">
           <div class="card-bar" style="background: #10b981"></div>
           <h3 class="card-title">评论区话术</h3>
-          <button class="copy-btn" @click="copyText(task.comment_template)">复制</button>
+          <button class="copy-btn" @click="copyText(task.comment_template, 'comment_template')">复制</button>
         </div>
         <div class="comment-content">{{ task.comment_template }}</div>
       </div>
@@ -134,9 +134,11 @@
         round
         size="large"
         color="var(--xh-brand)"
+        :loading="publishState === 'publishing'"
+        loading-text="发布中..."
         @click="handlePublish"
       >
-        我已发布
+        一键发布
       </van-button>
       <div v-else-if="task?.status === 'PUBLISHED'" class="published-status">
         <van-icon name="checked" color="var(--xh-success)" size="20" />
@@ -174,7 +176,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast, showLoadingToast, closeToast, showConfirmDialog } from 'vant'
-import { getCurrentTask, publishTask, swapTask } from '../api/tasks'
+import { getCurrentTask, publishTask, swapTask, autoPublish } from '../api/tasks'
+import { track } from '../utils/tracker'
 
 interface StoryboardShot {
   shot: number
@@ -208,6 +211,7 @@ interface Task {
 const route = useRoute()
 const router = useRouter()
 const task = ref<Task | null>(null)
+const publishState = ref<'idle' | 'publishing' | 'success' | 'failed'>('idle')
 
 const dealScripts = computed<ConversionScriptItem[]>(() => {
   if (!task.value?.conversion_scripts) return []
@@ -242,9 +246,10 @@ onMounted(async () => {
   }
 })
 
-const copyText = async (text: string) => {
+const copyText = async (text: string, field?: string) => {
   try {
     await navigator.clipboard.writeText(text)
+    track('content_copied', { page: `/task/${task.value?.id}`, metadata: { field: field || 'unknown' } })
     showToast({ message: '已复制', icon: 'checked' })
   } catch {
     showToast('复制失败')
@@ -253,14 +258,63 @@ const copyText = async (text: string) => {
 
 const handlePublish = async () => {
   if (!task.value) return
-  const toast = showLoadingToast({ message: '确认中...', forbidClick: true, duration: 0 })
+  track('publish_clicked', { page: `/task/${task.value.id}`, metadata: { task_id: task.value.id } })
+  publishState.value = 'publishing'
+  const toast = showLoadingToast({ message: '正在发布...', forbidClick: true, duration: 0 })
   try {
-    await publishTask(task.value.id)
-    task.value.status = 'PUBLISHED'
-    showToast({ message: '已确认发布', icon: 'checked' })
+    const res = await autoPublish(task.value.id)
+    const data = res.data
+    if (data.success) {
+      task.value.status = 'PUBLISHED'
+      publishState.value = 'success'
+      showToast({ message: '发布成功', icon: 'checked' })
+    } else if (data.fallback_to_manual) {
+      publishState.value = 'failed'
+      closeToast()
+      try {
+        await showConfirmDialog({
+          title: '自动发布不可用',
+          message: `${data.error || '自动发布失败'}，是否手动确认发布？\n\n提示：标题和文案已可复制`,
+          confirmButtonText: '确认已发布',
+          cancelButtonText: '取消',
+        })
+        await publishTask(task.value.id)
+        task.value.status = 'PUBLISHED'
+        publishState.value = 'success'
+        showToast({ message: '已确认发布', icon: 'checked' })
+      } catch {
+        publishState.value = 'idle'
+      }
+    } else {
+      publishState.value = 'failed'
+      showToast(data.error || '发布失败')
+    }
   } catch (e: any) {
-    const detail = e?.response?.data?.detail
-    showToast(detail || '操作失败')
+    publishState.value = 'failed'
+    closeToast()
+    try {
+      await showConfirmDialog({
+        title: '自动发布失败',
+        message: '是否手动确认发布？\n\n提示：标题和文案已可复制',
+        confirmButtonText: '确认已发布',
+        cancelButtonText: '取消',
+      })
+      const toast2 = showLoadingToast({ message: '确认中...', forbidClick: true, duration: 0 })
+      try {
+        await publishTask(task.value.id)
+        task.value.status = 'PUBLISHED'
+        publishState.value = 'success'
+        showToast({ message: '已确认发布', icon: 'checked' })
+      } catch (e2: any) {
+        const detail2 = e2?.response?.data?.detail
+        showToast(detail2 || '操作失败')
+        publishState.value = 'idle'
+      } finally {
+        closeToast()
+      }
+    } catch {
+      publishState.value = 'idle'
+    }
   } finally {
     closeToast()
   }

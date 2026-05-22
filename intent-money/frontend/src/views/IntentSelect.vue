@@ -46,6 +46,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { getIntents } from '../api/tasks'
+import { track } from '../utils/tracker'
 
 interface Intent {
   id: string
@@ -84,6 +85,7 @@ onMounted(async () => {
 })
 
 const selectIntent = (intent: Intent) => {
+  track('intent_selected', { page: '/', metadata: { intent_id: intent.id, intent_name: intent.name } })
   selectedIntentId.value = intent.id
   showFeedback.value = true
   setTimeout(() => {

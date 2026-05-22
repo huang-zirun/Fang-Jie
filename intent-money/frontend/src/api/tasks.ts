@@ -95,3 +95,15 @@ export function getEvolutionStats() {
 export function adjustRuleWeights() {
   return request.post('/admin/evolution/adjust-weights')
 }
+
+export function autoPublish(taskId: string) {
+  return request.post(`/publish/${taskId}/auto`)
+}
+
+export function uploadCookie(data: Record<string, unknown>) {
+  return request.post('/publish/cookie', data)
+}
+
+export function checkCookieStatus(platform: string) {
+  return request.get(`/publish/cookie/${platform}`)
+}

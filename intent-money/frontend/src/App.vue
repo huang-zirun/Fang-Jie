@@ -6,6 +6,22 @@
   </router-view>
 </template>
 
+<script setup>
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { initTracker, trackPageView } from './utils/tracker'
+
+const router = useRouter()
+
+onMounted(() => {
+  initTracker()
+})
+
+router.afterEach((to) => {
+  trackPageView(to.path)
+})
+</script>
+
 <style>
 .page-enter-active {
   transition: all 0.3s ease-out;
