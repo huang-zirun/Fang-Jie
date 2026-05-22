@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.models.content_task import ContentTask
 from app.models.diagnosis_result import DiagnosisResult
+from app.models.market_hot import MarketHot
 from app.models.optimization_rule import OptimizationRule
 from app.models.performance_report import PerformanceReport
 
@@ -191,6 +192,50 @@ async def diagnose_performance(
 
     diagnosis.ai_analysis = ai_analysis
     diagnosis.rule_confidence = rule_confidence
+
+    sentiment_signal = None
+    if task and task.platform_id and settings.SENTIMENT_ENABLED:
+        try:
+            hot_result = await db.execute(
+                select(MarketHot).where(
+                    MarketHot.platform_id == task.platform_id,
+                    MarketHot.is_active.is_(True),
+                    MarketHot.comment_sentiment.isnot(None),
+                )
+            )
+            hots_with_sentiment = hot_result.scalars().all()
+
+            if hots_with_sentiment:
+                total_positive = sum(h.comment_sentiment.get("positive", 0) for h in hots_with_sentiment if h.comment_sentiment)
+                total_neutral = sum(h.comment_sentiment.get("neutral", 0) for h in hots_with_sentiment if h.comment_sentiment)
+                total_negative = sum(h.comment_sentiment.get("negative", 0) for h in hots_with_sentiment if h.comment_sentiment)
+                total_all = total_positive + total_neutral + total_negative
+
+                if total_all > 0:
+                    positive_ratio = total_positive / total_all
+                    negative_ratio = total_negative / total_all
+
+                    if positive_ratio > 0.6:
+                        sentiment_signal = "effective"
+                    elif negative_ratio > 0.4:
+                        sentiment_signal = "needs_optimization"
+                    else:
+                        sentiment_signal = "neutral"
+        except Exception as e:
+            logger.error(f"Sentiment signal analysis failed: {e}")
+
+    additional_data = {}
+    if sentiment_signal:
+        additional_data["sentiment_signal"] = sentiment_signal
+    if ai_analysis:
+        try:
+            ai_data = json.loads(ai_analysis)
+            if isinstance(ai_data, dict):
+                additional_data.update(ai_data)
+        except (json.JSONDecodeError, TypeError):
+            pass
+    if additional_data:
+        diagnosis.ai_analysis = json.dumps(additional_data, ensure_ascii=False)
 
     db.add(diagnosis)
     await db.commit()

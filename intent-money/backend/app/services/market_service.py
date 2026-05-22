@@ -10,6 +10,9 @@ from app.config import settings
 from app.models.content_structure import ContentStructure
 from app.models.market_hot import MarketHot
 from app.models.platform import Platform
+from app.services.platform_scraper import douyin_scraper
+from app.services.platform_scraper.xhs_scraper import XhsScraper
+from app.services.sentiment_service import analyze_comments_batch_async
 
 logger = logging.getLogger(__name__)
 
@@ -173,3 +176,166 @@ async def update_market_scores(db: AsyncSession) -> int:
 
     await db.commit()
     return updated_count
+
+
+async def scrape_and_save_xhs_notes(db: AsyncSession, keyword: str) -> int:
+    try:
+        scraper = XhsScraper()
+        notes = await scraper.search_hot_notes(keyword=keyword)
+    except Exception as e:
+        logger.error(f"XHS scrape failed for keyword '{keyword}': {e}")
+        return 0
+
+    if not notes:
+        logger.info(f"XHS scrape returned no results for keyword '{keyword}'")
+        return 0
+
+    platform_result = await db.execute(
+        select(Platform).where(Platform.name == "小红书")
+    )
+    platform = platform_result.scalars().first()
+    if not platform:
+        logger.warning("Platform '小红书' not found, skipping save")
+        return 0
+
+    saved_count = 0
+    for note in notes:
+        try:
+            analysis_result = {
+                "note_id": note.get("note_id", ""),
+                "title": note.get("title", ""),
+                "author": note.get("author", ""),
+                "liked_count": note.get("liked_count", "0"),
+                "collected_count": note.get("collected_count", "0"),
+                "comment_count": note.get("comment_count", "0"),
+                "share_count": note.get("share_count", "0"),
+                "note_type": note.get("note_type", ""),
+                "tag_list": note.get("tag_list", []),
+            }
+
+            comment_sentiment = None
+            if settings.SENTIMENT_ENABLED:
+                try:
+                    note_id = note.get("note_id", "")
+                    if note_id:
+                        comments = await scraper.get_note_comments(note_id, limit=50)
+                        comment_texts = [c.get("content", "") for c in comments if c.get("content")]
+                        if comment_texts:
+                            sentiment_result = await analyze_comments_batch_async(comment_texts)
+                            comment_sentiment = {
+                                "total": sentiment_result["total"],
+                                "positive": sentiment_result["positive"],
+                                "neutral": sentiment_result["neutral"],
+                                "negative": sentiment_result["negative"],
+                                "avg_score": sentiment_result["avg_score"],
+                            }
+                except Exception as e:
+                    logger.error(f"XHS comment sentiment analysis failed for note: {e}")
+
+            hot = MarketHot(
+                platform_id=platform.id,
+                keyword=keyword,
+                hot_type="xhs_note",
+                analysis_result=analysis_result,
+                recommended_structures=note.get("tag_list", []),
+                priority_boost=float(note.get("liked_count", "0") or 0),
+                comment_sentiment=comment_sentiment,
+                is_active=True,
+            )
+            db.add(hot)
+            saved_count += 1
+        except Exception as e:
+            logger.error(f"Failed to save XHS note: {e}")
+            continue
+
+    try:
+        await db.commit()
+    except Exception as e:
+        logger.error(f"Failed to commit XHS notes: {e}")
+        await db.rollback()
+        return 0
+
+    return saved_count
+
+
+async def scrape_and_save_hot_videos(db: AsyncSession, platform_id: uuid.UUID, keyword: str) -> int:
+    if not settings.SCRAPER_ENABLED:
+        logger.info("Scraper is disabled, skipping scrape_and_save_hot_videos")
+        return 0
+
+    try:
+        videos = await douyin_scraper.search_hot_videos(keyword, limit=20)
+    except Exception as e:
+        logger.error(f"Scrape hot videos failed for keyword '{keyword}': {e}")
+        return 0
+
+    if not videos:
+        logger.info(f"No videos found for keyword '{keyword}'")
+        return 0
+
+    saved_count = 0
+    for video in videos:
+        try:
+            stats = video.get("statistics", {})
+            play_count = stats.get("play_count", 0)
+            digg_count = stats.get("digg_count", 0)
+            comment_count = stats.get("comment_count", 0)
+            share_count = stats.get("share_count", 0)
+
+            total_engagement = digg_count + comment_count + share_count
+            priority_boost = min(total_engagement / 10000.0, 100.0) if play_count > 0 else 0.0
+
+            tags = video.get("tags", [])
+
+            comment_sentiment = None
+            if settings.SENTIMENT_ENABLED:
+                try:
+                    video_id = video.get("video_id", "")
+                    if video_id:
+                        comments = await douyin_scraper.get_video_comments(video_id, limit=50)
+                        comment_texts = [c.get("content", "") for c in comments if c.get("content")]
+                        if comment_texts:
+                            sentiment_result = await analyze_comments_batch_async(comment_texts)
+                            comment_sentiment = {
+                                "total": sentiment_result["total"],
+                                "positive": sentiment_result["positive"],
+                                "neutral": sentiment_result["neutral"],
+                                "negative": sentiment_result["negative"],
+                                "avg_score": sentiment_result["avg_score"],
+                            }
+                except Exception as e:
+                    logger.error(f"Douyin comment sentiment analysis failed for video: {e}")
+
+            hot = MarketHot(
+                platform_id=platform_id,
+                keyword=keyword,
+                hot_type="trending_video",
+                analysis_result={
+                    "video_id": video.get("video_id", ""),
+                    "title": video.get("title", ""),
+                    "author": video.get("author", {}),
+                    "statistics": stats,
+                    "tags": tags,
+                    "created_at": video.get("created_at"),
+                    "share_url": video.get("share_url", ""),
+                },
+                recommended_structures=tags if tags else None,
+                priority_boost=priority_boost,
+                comment_sentiment=comment_sentiment,
+                is_active=True,
+            )
+            db.add(hot)
+            saved_count += 1
+        except Exception as e:
+            logger.error(f"Failed to save video hot record: {e}")
+            continue
+
+    try:
+        await db.commit()
+    except Exception as e:
+        logger.error(f"Failed to commit scraped hot videos: {e}")
+        await db.rollback()
+        return 0
+
+    logger.info(f"Saved {saved_count} hot videos for keyword '{keyword}'")
+    return saved_count

@@ -170,7 +170,7 @@ async def create_task(
     platform_result = await db.execute(
         Platform.__table__.select().where(Platform.id == task.platform_id)
     )
-    platform_row = platform_result.first()
+    platform_result.first()
 
     return await _build_task_out(db, task)
 

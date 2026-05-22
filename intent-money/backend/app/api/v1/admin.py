@@ -4,10 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import require_admin
 from app.database import get_db
 from app.models.content_structure import ContentStructure
 from app.models.content_task import ContentTask
+from app.models.market_hot import MarketHot
 from app.models.optimization_rule import OptimizationRule
 from app.models.user import User
 from app.schemas.content_structure import (
@@ -26,7 +27,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 @router.get("/stats")
 async def get_stats(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     total_users = await db.scalar(select(func.count(User.id)))
     total_tasks = await db.scalar(select(func.count(ContentTask.id)))
@@ -53,7 +54,7 @@ async def get_stats(
 @router.get("/optimization-rules", response_model=list[OptimizationRuleOut])
 async def list_optimization_rules(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     result = await db.execute(
         select(OptimizationRule).order_by(OptimizationRule.priority.desc())
@@ -65,7 +66,7 @@ async def list_optimization_rules(
 async def create_optimization_rule(
     data: OptimizationRuleCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     rule = OptimizationRule(**data.model_dump())
     db.add(rule)
@@ -79,7 +80,7 @@ async def update_optimization_rule(
     rule_id: uuid.UUID,
     data: OptimizationRuleUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     result = await db.execute(
         select(OptimizationRule).where(OptimizationRule.id == rule_id)
@@ -101,7 +102,7 @@ async def update_optimization_rule(
 async def delete_optimization_rule(
     rule_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     result = await db.execute(
         select(OptimizationRule).where(OptimizationRule.id == rule_id)
@@ -115,7 +116,7 @@ async def delete_optimization_rule(
 
 @router.get("/banned-words")
 async def get_banned_words(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     from app.services.ai_service import BANNED_PHRASES
     return {"banned_phrases": BANNED_PHRASES}
@@ -124,7 +125,7 @@ async def get_banned_words(
 @router.put("/banned-words")
 async def update_banned_words(
     banned_phrases: list[str],
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     from app.services.ai_service import BANNED_PHRASES
     BANNED_PHRASES.clear()
@@ -135,7 +136,7 @@ async def update_banned_words(
 @router.get("/prompt-templates")
 async def get_prompt_templates(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     result = await db.execute(
         select(ContentStructure.id, ContentStructure.hook_type, ContentStructure.prompt_template)
@@ -148,7 +149,7 @@ async def get_prompt_templates(
 async def batch_create_content_structures(
     items: list[ContentStructureCreate],
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     structures = []
     for item in items:
@@ -164,7 +165,7 @@ async def batch_create_content_structures(
 @router.post("/evolution/adjust-weights")
 async def trigger_adjust_weights(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     from app.services.evolution_service import adjust_rule_weights
     result = await adjust_rule_weights(db)
@@ -174,7 +175,7 @@ async def trigger_adjust_weights(
 @router.get("/evolution/stats")
 async def get_evolution_stats(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     result = await db.execute(
         select(OptimizationRule).order_by(OptimizationRule.priority.desc())
@@ -197,3 +198,77 @@ async def get_evolution_stats(
         })
 
     return {"stats": stats}
+
+
+@router.get("/sentiment-summary")
+async def get_sentiment_summary(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    result = await db.execute(
+        select(MarketHot).where(
+            MarketHot.is_active.is_(True),
+            MarketHot.comment_sentiment.isnot(None),
+        )
+    )
+    hots = result.scalars().all()
+
+    platform_summary: dict[str, dict] = {}
+    overall_positive = 0
+    overall_neutral = 0
+    overall_negative = 0
+    overall_total = 0
+
+    for hot in hots:
+        sentiment = hot.comment_sentiment
+        if not sentiment:
+            continue
+
+        platform_name = hot.platform.name if hot.platform else "unknown"
+
+        if platform_name not in platform_summary:
+            platform_summary[platform_name] = {
+                "total": 0,
+                "positive": 0,
+                "neutral": 0,
+                "negative": 0,
+                "avg_score": 0.0,
+                "score_sum": 0.0,
+                "count": 0,
+            }
+
+        s = platform_summary[platform_name]
+        s["total"] += sentiment.get("total", 0)
+        s["positive"] += sentiment.get("positive", 0)
+        s["neutral"] += sentiment.get("neutral", 0)
+        s["negative"] += sentiment.get("negative", 0)
+        s["score_sum"] += sentiment.get("avg_score", 0.0)
+        s["count"] += 1
+
+        overall_positive += sentiment.get("positive", 0)
+        overall_neutral += sentiment.get("neutral", 0)
+        overall_negative += sentiment.get("negative", 0)
+        overall_total += sentiment.get("total", 0)
+
+    for name, s in platform_summary.items():
+        s["avg_score"] = round(s["score_sum"] / s["count"], 4) if s["count"] > 0 else 0.0
+        del s["score_sum"]
+        del s["count"]
+
+    overall_avg = 0.0
+    if overall_total > 0:
+        overall_avg = round(
+            (overall_positive * 1.0 + overall_neutral * 0.5 + overall_negative * 0.0) / overall_total,
+            4,
+        )
+
+    return {
+        "platforms": platform_summary,
+        "overall": {
+            "total": overall_total,
+            "positive": overall_positive,
+            "neutral": overall_neutral,
+            "negative": overall_negative,
+            "avg_score": overall_avg,
+        },
+    }
