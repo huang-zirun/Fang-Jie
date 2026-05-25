@@ -25,7 +25,7 @@ async def get_platforms(db: AsyncSession = Depends(get_db)):
     platforms = result.scalars().all()
     return {
         "platforms": [
-            {"id": str(p.id), "name": p.name, "is_active": p.is_active}
+            {"id": str(p.id), "name": p.name, "description": p.description or "", "is_active": p.is_active}
             for p in platforms
         ]
     }
