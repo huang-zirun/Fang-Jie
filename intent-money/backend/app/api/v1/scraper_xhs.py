@@ -1,10 +1,12 @@
 from fastapi import APIRouter, HTTPException
 
+from app.config import settings
+from app.services.platform_scraper.cdp_xhs_scraper import CdpXhsScraper
 from app.services.platform_scraper.xhs_scraper import XhsScraper
 
 router = APIRouter(prefix="/xhs", tags=["scraper-xhs"])
 
-_scraper = XhsScraper()
+_scraper = CdpXhsScraper() if settings.CDP_ENABLED else XhsScraper()
 
 
 @router.post("/search")

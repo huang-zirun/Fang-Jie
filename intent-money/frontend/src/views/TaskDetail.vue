@@ -1,45 +1,63 @@
 <template>
   <div class="task-page">
-    <div class="custom-nav">
-      <div class="nav-back" @click="router.back()">
-        <van-icon name="arrow-left" size="20" />
-      </div>
-      <div class="nav-title">今日任务</div>
-      <div class="nav-action" @click="router.push('/history')">
-        <van-icon name="clock-o" size="20" />
-      </div>
-    </div>
+    <CyberNav title="今日任务">
+      <template #action>
+        <div class="nav-action-btn" @click="router.push('/history')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+      </template>
+    </CyberNav>
 
     <div v-if="task" class="task-content">
+      <!-- Task Header -->
       <div class="task-header">
         <div class="platform-tags">
-          <span class="tag tag-primary">{{ task.platform_name }}</span>
-          <span v-if="task.is_optimized" class="tag tag-success">已优化</span>
+          <span class="tag tag-platform">{{ task.platform_name }}</span>
+          <span v-if="task.is_optimized" class="tag tag-optimized">已优化</span>
         </div>
       </div>
 
-      <div v-if="task.is_optimized" class="info-banner banner-pink">
-        <van-icon name="info-o" class="banner-icon" />
+      <!-- Info Banners -->
+      <div v-if="task.is_optimized" class="info-banner banner-magenta">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
         <span>这条内容已针对上次问题优化</span>
       </div>
 
-      <div class="info-banner banner-blue">
-        <van-icon name="bulb-o" class="banner-icon" />
+      <div class="info-banner banner-cyan">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/>
+          <path d="M9 21h6"/>
+        </svg>
         <span>{{ task.why_it_works }}</span>
       </div>
 
-      <div class="task-card">
+      <!-- Hook Card -->
+      <CyberCard variant="magenta" glow-border glow-color="magenta">
         <div class="card-header">
-          <div class="card-bar" style="background: var(--xh-brand)"></div>
+          <div class="card-bar" style="background: var(--neon-magenta)"></div>
           <h3 class="card-title">3秒钩子</h3>
-          <button class="copy-btn" @click="copyText(task.hook_text, 'hook_text')">复制</button>
+          <button class="copy-btn" @click.stop="copyText(task.hook_text, 'hook_text')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            复制
+          </button>
         </div>
         <div class="hook-content">"{{ task.hook_text }}"</div>
-      </div>
+      </CyberCard>
 
-      <div class="task-card">
+      <!-- Storyboard Card -->
+      <CyberCard>
         <div class="card-header">
-          <div class="card-bar" style="background: #8b5cf6"></div>
+          <div class="card-bar" style="background: var(--neon-purple)"></div>
           <h3 class="card-title">分镜脚本</h3>
         </div>
         <div class="storyboard">
@@ -51,140 +69,139 @@
             </div>
           </div>
         </div>
-      </div>
+      </CyberCard>
 
-      <div class="task-card">
+      <!-- Script Card -->
+      <CyberCard>
         <div class="card-header">
-          <div class="card-bar" style="background: #06b6d4"></div>
+          <div class="card-bar" style="background: var(--neon-cyan)"></div>
           <h3 class="card-title">口播文案</h3>
-          <button class="copy-btn" @click="copyText(task.script_text, 'script_text')">复制</button>
+          <button class="copy-btn" @click.stop="copyText(task.script_text, 'script_text')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            复制
+          </button>
         </div>
         <div class="script-content">{{ task.script_text }}</div>
-      </div>
+      </CyberCard>
 
-      <div class="task-card">
+      <!-- Title Card -->
+      <CyberCard>
         <div class="card-header">
-          <div class="card-bar" style="background: #f59e0b"></div>
+          <div class="card-bar" style="background: var(--neon-gold)"></div>
           <h3 class="card-title">发布标题</h3>
-          <button class="copy-btn" @click="copyText(task.title, 'title')">复制</button>
+          <button class="copy-btn" @click.stop="copyText(task.title, 'title')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            复制
+          </button>
         </div>
         <div class="title-content">{{ task.title }}</div>
-      </div>
+      </CyberCard>
 
-      <div class="task-card">
+      <!-- Comment Card -->
+      <CyberCard>
         <div class="card-header">
-          <div class="card-bar" style="background: #10b981"></div>
+          <div class="card-bar" style="background: var(--neon-gold)"></div>
           <h3 class="card-title">评论区话术</h3>
-          <button class="copy-btn" @click="copyText(task.comment_template, 'comment_template')">复制</button>
+          <button class="copy-btn" @click.stop="copyText(task.comment_template, 'comment_template')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            复制
+          </button>
         </div>
         <div class="comment-content">{{ task.comment_template }}</div>
-      </div>
+      </CyberCard>
 
-      <div v-if="task.intent_name === '成交赚钱' && dealScripts.length" class="task-card">
-        <div class="card-header">
-          <div class="card-bar" style="background: #10b981"></div>
-          <h3 class="card-title">促单话术</h3>
-        </div>
-        <div v-for="(item, idx) in dealScripts" :key="idx" class="conversion-script-item">
-          <div class="script-stage-title">{{ item.title }}</div>
-          <div class="script-stage-content" style="border-left: 3px solid #10b981">{{ formatScripts(item.scripts) }}</div>
-        </div>
-      </div>
+      <!-- Conversion Scripts -->
+      <template v-if="task.intent_name === '成交赚钱' && dealScripts.length">
+        <CyberCard variant="gold" glow-border glow-color="gold">
+          <div class="card-header">
+            <div class="card-bar" style="background: var(--neon-gold)"></div>
+            <h3 class="card-title">促单话术</h3>
+          </div>
+          <div v-for="(item, idx) in dealScripts" :key="idx" class="conversion-item">
+            <div class="conversion-stage">{{ item.title }}</div>
+            <div class="conversion-text" style="border-left-color: var(--neon-gold)">{{ formatScripts(item.scripts) }}</div>
+          </div>
+        </CyberCard>
+      </template>
 
-      <div v-if="task.intent_name === '裂变招募分销' && recruitScripts.length" class="task-card">
-        <div class="card-header">
-          <div class="card-bar" style="background: #4A90D9"></div>
-          <h3 class="card-title">招募话术</h3>
-        </div>
-        <div v-for="(item, idx) in recruitScripts" :key="idx" class="conversion-script-item">
-          <div class="script-stage-title">{{ item.title }}</div>
-          <div class="script-stage-content" style="border-left: 3px solid #4A90D9">{{ formatScripts(item.scripts) }}</div>
-        </div>
-      </div>
+      <template v-if="task.intent_name === '裂变招募分销' && recruitScripts.length">
+        <CyberCard variant="cyan" glow-border glow-color="cyan">
+          <div class="card-header">
+            <div class="card-bar" style="background: var(--neon-cyan)"></div>
+            <h3 class="card-title">招募话术</h3>
+          </div>
+          <div v-for="(item, idx) in recruitScripts" :key="idx" class="conversion-item">
+            <div class="conversion-stage">{{ item.title }}</div>
+            <div class="conversion-text" style="border-left-color: var(--neon-cyan)">{{ formatScripts(item.scripts) }}</div>
+          </div>
+        </CyberCard>
+      </template>
 
-      <div v-if="task.intent_name === 'IP长期增长' && ipScripts.length" class="task-card">
-        <div class="card-header">
-          <div class="card-bar" style="background: #8B5CF6"></div>
-          <h3 class="card-title">粉丝运营话术</h3>
-        </div>
-        <div v-for="(item, idx) in ipScripts" :key="idx" class="conversion-script-item">
-          <div class="script-stage-title">{{ item.title }}</div>
-          <div class="script-stage-content" style="border-left: 3px solid #8B5CF6">{{ formatScripts(item.scripts) }}</div>
-        </div>
-      </div>
+      <template v-if="task.intent_name === 'IP长期增长' && ipScripts.length">
+        <CyberCard variant="purple" glow-border glow-color="purple">
+          <div class="card-header">
+            <div class="card-bar" style="background: var(--neon-purple)"></div>
+            <h3 class="card-title">粉丝运营话术</h3>
+          </div>
+          <div v-for="(item, idx) in ipScripts" :key="idx" class="conversion-item">
+            <div class="conversion-stage">{{ item.title }}</div>
+            <div class="conversion-text" style="border-left-color: var(--neon-purple)">{{ formatScripts(item.scripts) }}</div>
+          </div>
+        </CyberCard>
+      </template>
 
-      <div v-if="task.is_optimized && task.optimization_note" class="task-card">
+      <!-- Optimization Note -->
+      <CyberCard v-if="task.is_optimized && task.optimization_note" variant="gold">
         <div class="card-header">
-          <div class="card-bar" style="background: var(--xh-warning)"></div>
+          <div class="card-bar" style="background: var(--neon-gold)"></div>
           <h3 class="card-title">优化说明</h3>
         </div>
         <div class="optimization-content">{{ task.optimization_note }}</div>
-      </div>
+      </CyberCard>
     </div>
 
+    <!-- Loading State -->
     <div v-else class="task-loading">
       <van-skeleton title :row="8" />
     </div>
 
+    <!-- Bottom Actions -->
     <div class="task-actions">
-      <van-button
-        v-if="task?.status === 'PENDING'"
-        type="primary"
-        block
-        round
-        size="large"
-        color="var(--xh-brand)"
-        :loading="publishState === 'confirming'"
-        loading-text="确认中..."
-        @click="handleManualConfirm"
-      >
-        确认已发放
-      </van-button>
-      <div v-if="task?.status === 'PENDING'" class="manual-publish-hint">
-        复制话术并发到平台后，点这里进入数据回填
-      </div>
-      <div v-else-if="task?.status === 'PUBLISHED'" class="published-status">
-        <van-icon name="checked" color="var(--xh-success)" size="20" />
-        <span>已发放，等待数据回填</span>
-      </div>
-      <van-button
-        v-if="task?.status === 'PUBLISHED'"
-        type="success"
-        block
-        round
-        size="large"
-        color="var(--xh-success)"
-        style="margin-top: 8px"
-        @click="router.push(`/report/${task.id}`)"
-      >
-        回填数据
-      </van-button>
-      <van-button
-        v-if="task?.status === 'PENDING'"
-        plain
-        block
-        round
-        size="large"
-        style="margin-top: 8px"
-        color="var(--xh-brand)"
-        :loading="publishState === 'publishing'"
-        loading-text="发布中..."
-        @click="handlePublish"
-      >
-        自动发布
-      </van-button>
-      <van-button
-        v-if="task?.status === 'PENDING'"
-        plain
-        block
-        round
-        size="large"
-        style="margin-top: 8px"
-        color="var(--xh-brand)"
-        @click="handleSwap"
-      >
-        换一条
-      </van-button>
+      <template v-if="task?.status === 'PENDING'">
+        <CyberButton variant="primary" size="large" block :loading="publishState === 'confirming'" @click="handleManualConfirm">
+          确认已发放
+        </CyberButton>
+        <div class="manual-publish-hint">复制话术并发到平台后，点这里进入数据回填</div>
+        <div class="action-row">
+          <CyberButton variant="secondary" size="default" :loading="publishState === 'publishing'" @click="handlePublish">
+            自动发布
+          </CyberButton>
+          <CyberButton variant="ghost" size="default" @click="handleSwap">
+            换一条
+          </CyberButton>
+        </div>
+      </template>
+
+      <template v-else-if="task?.status === 'PUBLISHED'">
+        <div class="published-status">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--neon-gold)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+          <span>已发放，等待数据回填</span>
+        </div>
+        <CyberButton variant="gold" size="large" block @click="router.push(`/report/${task.id}`)">
+          回填数据
+        </CyberButton>
+      </template>
     </div>
   </div>
 </template>
@@ -195,6 +212,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { showToast, showLoadingToast, closeToast, showConfirmDialog } from 'vant'
 import { getTask, publishTask, swapTask, autoPublish } from '../api/tasks'
 import { track } from '../utils/tracker'
+import CyberNav from '../components/CyberNav.vue'
+import CyberCard from '../components/CyberCard.vue'
+import CyberButton from '../components/CyberButton.vue'
 
 interface StoryboardShot {
   shot: number
@@ -295,10 +315,7 @@ const handleManualConfirm = async () => {
     return
   }
 
-  track('publish_clicked', {
-    page: `/task/${task.value.id}`,
-    metadata: { task_id: task.value.id, mode: 'manual_confirm' },
-  })
+  track('publish_clicked', { page: `/task/${task.value.id}`, metadata: { task_id: task.value.id, mode: 'manual_confirm' } })
   publishState.value = 'confirming'
   const toast = showLoadingToast({ message: '确认中...', forbidClick: true, duration: 0 })
   try {
@@ -403,58 +420,40 @@ const handleSwap = async () => {
 <style scoped>
 .task-page {
   min-height: 100vh;
-  background: var(--xh-bg-secondary);
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  padding-bottom: 160px;
+  padding-bottom: 200px;
 }
 
-.custom-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 48px;
-  padding: 0 12px;
-  background: var(--xh-bg-primary);
-  border-bottom: 1px solid var(--xh-border);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.nav-back {
-  width: 36px;
-  height: 36px;
+.nav-action-btn {
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--xh-text-primary);
+  color: var(--ink-gray);
+  border-radius: 10px;
+  transition: all 0.2s ease;
 }
 
-.nav-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--xh-text-primary);
-}
-
-.nav-action {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--xh-text-secondary);
+.nav-action-btn:hover {
+  color: var(--neon-cyan);
+  background: rgba(0, 245, 212, 0.1);
 }
 
 .task-content {
   flex: 1;
-  padding: 16px;
+  padding: 16px var(--page-padding);
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
 }
 
 .task-header {
-  margin-bottom: 12px;
+  animation: fadeInUp 0.4s ease-out forwards;
 }
 
 .platform-tags {
@@ -470,62 +469,61 @@ const handleSwap = async () => {
   border-radius: var(--radius-tag);
   font-size: 12px;
   font-weight: 500;
+  font-family: var(--font-mono);
 }
 
-.tag-primary {
-  background: var(--xh-brand-light);
-  color: var(--xh-brand);
+.tag-platform {
+  background: var(--neon-cyan-dim);
+  color: var(--neon-cyan);
+  border: 1px solid var(--border-cyan);
 }
 
-.tag-success {
-  background: #ecfdf5;
-  color: var(--xh-success);
+.tag-optimized {
+  background: var(--neon-magenta-dim);
+  color: var(--neon-magenta);
+  border: 1px solid var(--border-magenta);
 }
 
+/* Info Banners */
 .info-banner {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  padding: 12px 14px;
+  gap: 10px;
+  padding: 14px;
   border-radius: var(--radius-card);
   font-size: 13px;
-  line-height: 1.5;
-  margin-bottom: 12px;
+  line-height: 1.6;
+  animation: fadeInUp 0.5s ease-out 0.1s both;
 }
 
-.banner-icon {
+.info-banner svg {
   flex-shrink: 0;
   margin-top: 1px;
 }
 
-.banner-pink {
-  background: var(--xh-brand-light);
-  color: var(--xh-brand);
+.banner-magenta {
+  background: var(--neon-magenta-dim);
+  color: var(--neon-magenta);
+  border: 1px solid var(--border-magenta);
 }
 
-.banner-blue {
-  background: #f0f9ff;
-  color: #0369a1;
+.banner-cyan {
+  background: var(--neon-cyan-dim);
+  color: var(--neon-cyan);
+  border: 1px solid var(--border-cyan);
 }
 
-.task-card {
-  background: var(--xh-bg-primary);
-  border-radius: var(--radius-card);
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: var(--shadow-card);
-}
-
+/* Card Header */
 .card-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
 .card-bar {
   width: 4px;
-  height: 18px;
+  height: 20px;
   border-radius: 2px;
   flex-shrink: 0;
 }
@@ -533,97 +531,73 @@ const handleSwap = async () => {
 .card-title {
   font-size: 15px;
   font-weight: 600;
-  color: var(--xh-text-primary);
+  color: var(--paper-white);
   margin: 0;
   flex: 1;
 }
 
 .copy-btn {
-  background: none;
-  border: 1px solid var(--xh-border);
-  border-radius: var(--radius-tag);
-  padding: 4px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
   font-size: 12px;
-  color: var(--xh-text-secondary);
+  color: var(--ink-gray);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s ease;
+  font-family: var(--font-mono);
 }
 
 .copy-btn:hover {
-  border-color: var(--xh-brand);
-  color: var(--xh-brand);
+  border-color: var(--neon-cyan);
+  color: var(--neon-cyan);
+  background: rgba(0, 245, 212, 0.08);
 }
 
 .copy-btn:active {
   transform: scale(0.95);
 }
 
+/* Hook */
 .hook-content {
-  font-size: 18px;
+  font-family: var(--font-display);
+  font-size: 20px;
   font-weight: 600;
-  color: var(--xh-brand);
+  color: var(--neon-magenta);
   line-height: 1.6;
   padding: 8px 0;
 }
 
-.script-content {
-  font-size: 14px;
-  color: var(--xh-text-secondary);
-  line-height: 1.7;
-  white-space: pre-wrap;
-}
-
-.title-content {
-  font-size: 15px;
-  color: #0369a1;
-  font-weight: 500;
-  line-height: 1.5;
-}
-
-.comment-content {
-  background: var(--xh-bg-secondary);
-  padding: 14px;
-  border-radius: var(--radius-input);
-  font-size: 14px;
-  color: var(--xh-text-secondary);
-  line-height: 1.6;
-  border-left: 3px solid var(--xh-success);
-}
-
-.optimization-content {
-  background: #fef3c7;
-  padding: 14px;
-  border-radius: var(--radius-input);
-  font-size: 14px;
-  color: var(--xh-text-secondary);
-  line-height: 1.6;
-  border-left: 3px solid var(--xh-warning);
-}
-
+/* Storyboard */
 .storyboard {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .shot-item {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 14px;
 }
 
 .shot-number {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #8b5cf6 100%);
-  color: #fff;
+  background: linear-gradient(135deg, rgba(155, 93, 229, 0.3), rgba(155, 93, 229, 0.1));
+  border: 1px solid rgba(155, 93, 229, 0.4);
+  color: var(--neon-purple);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   flex-shrink: 0;
+  font-family: var(--font-mono);
 }
 
 .shot-info {
@@ -632,29 +606,113 @@ const handleSwap = async () => {
 
 .shot-desc {
   font-size: 14px;
-  color: var(--xh-text-primary);
-  line-height: 1.5;
+  color: var(--paper-white);
+  line-height: 1.6;
 }
 
 .shot-duration {
-  font-size: 12px;
-  color: var(--xh-text-tertiary);
-  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-gray);
+  margin-top: 4px;
 }
 
+/* Script */
+.script-content {
+  font-size: 14px;
+  color: var(--paper-dim);
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+/* Title */
+.title-content {
+  font-size: 15px;
+  color: var(--neon-gold);
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+/* Comment */
+.comment-content {
+  background: rgba(255, 214, 10, 0.05);
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--paper-dim);
+  line-height: 1.7;
+  border-left: 3px solid var(--neon-gold);
+}
+
+/* Conversion */
+.conversion-item {
+  margin-bottom: 14px;
+}
+
+.conversion-item:last-child {
+  margin-bottom: 0;
+}
+
+.conversion-stage {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--paper-white);
+  margin-bottom: 8px;
+}
+
+.conversion-text {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--paper-dim);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  border-left: 3px solid;
+}
+
+/* Optimization */
+.optimization-content {
+  background: rgba(255, 214, 10, 0.05);
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--paper-dim);
+  line-height: 1.7;
+  border-left: 3px solid var(--neon-gold);
+}
+
+/* Loading */
 .task-loading {
   flex: 1;
-  padding: 16px;
+  padding: 16px var(--page-padding);
 }
 
+/* Actions */
 .task-actions {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 16px;
-  background: var(--xh-bg-primary);
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
+  padding: 16px var(--page-padding) 24px;
+  background: linear-gradient(180deg, transparent 0%, var(--ink-black) 20%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 50;
+}
+
+.manual-publish-hint {
+  text-align: center;
+  color: var(--ink-gray);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
 .published-status {
@@ -663,40 +721,8 @@ const handleSwap = async () => {
   justify-content: center;
   gap: 8px;
   padding: 12px;
-  color: var(--xh-success);
+  color: var(--neon-gold);
   font-size: 15px;
-}
-
-.manual-publish-hint {
-  margin-top: 8px;
-  text-align: center;
-  color: var(--xh-text-tertiary);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.conversion-script-item {
-  margin-bottom: 12px;
-}
-
-.conversion-script-item:last-child {
-  margin-bottom: 0;
-}
-
-.script-stage-title {
-  font-size: 13px;
   font-weight: 500;
-  color: var(--xh-text-primary);
-  margin-bottom: 6px;
-}
-
-.script-stage-content {
-  background: var(--xh-bg-secondary);
-  padding: 14px;
-  border-radius: var(--radius-input);
-  font-size: 14px;
-  color: var(--xh-text-secondary);
-  line-height: 1.6;
-  white-space: pre-wrap;
 }
 </style>

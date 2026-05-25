@@ -11,6 +11,8 @@ from app.models.content_structure import ContentStructure
 from app.models.market_hot import MarketHot
 from app.models.platform import Platform
 from app.services.platform_scraper import douyin_scraper
+from app.services.platform_scraper.cdp_douyin_scraper import CdpDouyinScraper
+from app.services.platform_scraper.cdp_xhs_scraper import CdpXhsScraper
 from app.services.platform_scraper.xhs_scraper import XhsScraper
 from app.services.sentiment_service import analyze_comments_batch_async
 
@@ -180,7 +182,7 @@ async def update_market_scores(db: AsyncSession) -> int:
 
 async def scrape_and_save_xhs_notes(db: AsyncSession, keyword: str) -> int:
     try:
-        scraper = XhsScraper()
+        scraper = CdpXhsScraper() if settings.CDP_ENABLED else XhsScraper()
         notes = await scraper.search_hot_notes(keyword=keyword)
     except Exception as e:
         logger.error(f"XHS scrape failed for keyword '{keyword}': {e}")
@@ -264,7 +266,8 @@ async def scrape_and_save_hot_videos(db: AsyncSession, platform_id: uuid.UUID, k
         return 0
 
     try:
-        videos = await douyin_scraper.search_hot_videos(keyword, limit=20)
+        scraper = CdpDouyinScraper() if settings.CDP_ENABLED else douyin_scraper
+        videos = await scraper.search_hot_videos(keyword, limit=20)
     except Exception as e:
         logger.error(f"Scrape hot videos failed for keyword '{keyword}': {e}")
         return 0
@@ -292,7 +295,7 @@ async def scrape_and_save_hot_videos(db: AsyncSession, platform_id: uuid.UUID, k
                 try:
                     video_id = video.get("video_id", "")
                     if video_id:
-                        comments = await douyin_scraper.get_video_comments(video_id, limit=50)
+                        comments = await scraper.get_video_comments(video_id, limit=50)
                         comment_texts = [c.get("content", "") for c in comments if c.get("content")]
                         if comment_texts:
                             sentiment_result = await analyze_comments_batch_async(comment_texts)

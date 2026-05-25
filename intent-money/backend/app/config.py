@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     COOKIE_DIR: str = "cookies"
     COOKIE_EXPIRE_DAYS: int = 7
 
+    # CDP (Chrome DevTools Protocol) settings
+    CDP_ENABLED: bool = False
+    CDP_DEBUG_HOST: str = "127.0.0.1"
+    CDP_DEBUG_PORT: int = 9222
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
