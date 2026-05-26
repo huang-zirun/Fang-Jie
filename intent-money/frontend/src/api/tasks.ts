@@ -46,8 +46,8 @@ export function getTaskHistory(params?: Record<string, string>) {
   return request.get('/tasks/history', { params })
 }
 
-export function getAdminStats() {
-  return request.get('/admin/stats')
+export function getTaskOverview() {
+  return request.get('/tasks/overview')
 }
 
 export function getContentStructures() {

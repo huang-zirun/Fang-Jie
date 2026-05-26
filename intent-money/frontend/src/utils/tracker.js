@@ -16,7 +16,7 @@ function getSessionId() {
   return id
 }
 
-function flush() {
+function flush(useBeaconOnly = false) {
   if (buffer.length === 0) return
   const payload = {
     session_id: getSessionId(),
@@ -27,14 +27,15 @@ function flush() {
   const token = localStorage.getItem('token')
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
+  
   if (navigator.sendBeacon) {
-    const ok = navigator.sendBeacon('/api/v1/events', blob)
-    if (!ok) {
-      fetch('/api/v1/events', { method: 'POST', body: JSON.stringify(payload), headers, keepalive: true }).catch(() => {})
-    }
-  } else {
-    fetch('/api/v1/events', { method: 'POST', body: JSON.stringify(payload), headers, keepalive: true }).catch(() => {})
+    navigator.sendBeacon('/api/v1/events', blob)
+    return
   }
+  
+  if (useBeaconOnly) return
+  
+  fetch('/api/v1/events', { method: 'POST', body: JSON.stringify(payload), headers, keepalive: true }).catch(() => {})
 }
 
 function startTimer() {
@@ -74,6 +75,6 @@ export function initTracker() {
     }
   })
   window.addEventListener('beforeunload', () => {
-    flush()
+    flush(true)
   })
 }

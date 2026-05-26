@@ -163,17 +163,20 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast, showLoadingToast, closeToast, showDialog } from 'vant'
-import { getCurrentTask, reportTask, getDiagnosis, getNextTask as getNextTaskApi } from '../api/tasks'
+import { getCurrentTask, getTask, reportTask, getDiagnosis, getNextTask as getNextTaskApi } from '../api/tasks'
 import CyberNav from '../components/CyberNav.vue'
 import CyberCard from '../components/CyberCard.vue'
 import CyberButton from '../components/CyberButton.vue'
 
 interface Task {
   id: string
+  intent_id?: string
+  platform_id?: string
   platform_name: string
   title: string
   created_at: string
   status?: string
+  task_type?: string
 }
 
 interface AiAnalysisData {
@@ -217,8 +220,14 @@ const form = ref({
 
 onMounted(async () => {
   try {
-    const res = await getCurrentTask()
+    const routeTaskId = route.params.id as string | undefined
+    const res = routeTaskId ? await getTask(routeTaskId) : await getCurrentTask()
     task.value = res.data.task || res.data
+
+    if (task.value?.status === 'DIAGNOSED') {
+      const diagnosisRes = await getDiagnosis(task.value.id)
+      diagnosis.value = diagnosisRes.data.diagnosis || diagnosisRes.data
+    }
   } catch (e) {
     showToast('加载任务失败')
   }
@@ -275,8 +284,8 @@ const getNextTask = async () => {
   const toast = showLoadingToast({ message: '生成优化任务...', forbidClick: true, duration: 0 })
   try {
     const res = await getNextTaskApi(task.value.id, {
-      platform_id: '10000000-0000-0000-0000-000000000001',
-      task_type: 'video',
+      platform_id: task.value.platform_id,
+      task_type: task.value.task_type || 'video',
     })
     const newTask = res.data.task || res.data
     closeToast()

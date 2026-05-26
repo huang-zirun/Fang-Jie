@@ -140,7 +140,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { showToast } from 'vant'
-import { getAdminStats, getTaskHistory } from '../api/tasks'
+import { getTaskOverview, getTaskHistory } from '../api/tasks'
 import CyberNav from '../components/CyberNav.vue'
 import CyberCard from '../components/CyberCard.vue'
 
@@ -222,7 +222,7 @@ const getStatusLabel = (status: string): string => {
 
 onMounted(async () => {
   try {
-    const statsRes = await getAdminStats()
+    const statsRes = await getTaskOverview()
     stats.value = statsRes.data
   } catch {
     showToast('加载统计失败')
