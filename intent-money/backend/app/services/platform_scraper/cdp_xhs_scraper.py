@@ -7,7 +7,7 @@ from app.services.platform_scraper.cdp_browser import CdpBrowser, CdpConnectionE
 
 logger = logging.getLogger(__name__)
 
-XHS_SEARCH_URL = "https://www.xiaohongshu.com/search_result?keyword={keyword}&source=web_search_result_notes&type=51"
+XHS_SEARCH_URL = "https://www.xiaohongshu.com/search_result?keyword={keyword}&source=web_search_result_notes&type=51&sort={sort}"
 XHS_NOTE_DETAIL_URL = "https://www.xiaohongshu.com/explore/{note_id}"
 XHS_BASE_URL = "https://www.xiaohongshu.com"
 
@@ -21,8 +21,15 @@ class CdpXhsScraper(BasePlatformScraper):
     def __init__(self, browser: CdpBrowser | None = None):
         self._browser = browser or CdpBrowser()
 
-    async def search_hot_notes(self, keyword: str, limit: int = 20) -> list[dict[str, Any]]:
-        url = XHS_SEARCH_URL.format(keyword=keyword)
+    async def search_hot_notes(self, keyword: str, limit: int = 20, sort: str = "likes") -> list[dict[str, Any]]:
+        """搜索小红书笔记
+
+        Args:
+            keyword: 搜索关键词
+            limit: 返回结果数量限制
+            sort: 排序方式，general=综合, time=最新, likes=最多点赞(默认), comments=最多评论, favorites=最多收藏
+        """
+        url = XHS_SEARCH_URL.format(keyword=keyword, sort=sort)
         try:
             await self._browser.navigate(url, wait_seconds=6.0)
             raw = await self._browser.evaluate("""

@@ -17,18 +17,18 @@ logger = logging.getLogger(__name__)
 
 
 FIXED_TEMPLATE = {
-    "hook_text": "你穿的袜子可能正在伤害你的脚",
+    "hook_text": "袜子乱放真的会拖慢出门",
     "storyboard": [
-        {"shot": 1, "description": "特写：劣质袜子起球、变形的画面", "duration": "3s"},
-        {"shot": 2, "description": "对比：展示我们的袜子弹性和质感", "duration": "5s"},
-        {"shot": 3, "description": "近景：穿袜子的脚部舒适展示", "duration": "5s"},
-        {"shot": 4, "description": "中景：手持多双袜子展示颜色选择", "duration": "5s"},
-        {"shot": 5, "description": "近景：手指指向评论区引导私信", "duration": "2s"},
+        {"shot": 1, "description": "近景：早上出门翻抽屉找袜子，连续拿出两只不同款，展示真实混乱场景", "duration": "3s", "label": "痛点开场"},
+        {"shot": 2, "description": "特写：把起球、袜口松、脚跟磨薄的旧袜子单独挑出来，说明淘汰标准", "duration": "5s", "label": "问题证据"},
+        {"shot": 3, "description": "中景：把通勤袜、运动袜、居家袜分成三格，并说明每类适合的鞋型", "duration": "8s", "label": "方法拆解"},
+        {"shot": 4, "description": "特写：上脚展示袜口高度、脚跟贴合和鞋内不滑的细节", "duration": "7s", "label": "使用体验"},
+        {"shot": 5, "description": "近景：展示整理后的抽屉和当天穿搭，结尾抛出互动问题", "duration": "5s", "label": "互动收尾"},
     ],
-    "script_text": "你知道吗？市面上80%的袜子穿一个月就变形起球。我之前也是这样，直到我发现了这款袜子。纯棉面料，弹力不勒脚，穿了三个月还像新的一样。关键是价格，5双只要39块9，比超市便宜一半。想了解的评论区扣1，我私信你。",
-    "title": "袜子别乱买！这款穿了3个月还像新的 #好物推荐 #袜子推荐",
-    "comment_template": "想要同款袜子的姐妹扣1，我私信发你链接！前10名还有额外优惠哦~",
-    "why_it_works": "痛点切入+对比展示+低价诱惑+评论区引导私信，完整转化链路",
+    "script_text": "以前我的袜子都是团成一堆，早上越急越找不到。后来我改成按场景分三格：通勤袜放最顺手的位置，运动袜单独一格，居家袜放后排。袜口松了、脚跟磨薄、穿着滑跟的就直接淘汰。这样整理后，黑白灰基础款够日常，彩色款只留真正会搭的，出门不用临时乱翻。",
+    "title": "袜子抽屉不乱了｜出门30秒找到一双 #收纳 #袜子搭配",
+    "comment_template": "你们袜子最头疼的是滑跟、起球，还是颜色太多不好搭？评论区说下场景，我整理一版清单。",
+    "why_it_works": "用真实出门场景切入，先提供收纳和搭配价值，再用低压评论承接需求。",
 }
 
 
@@ -67,7 +67,7 @@ async def generate_task(
     if existing_task:
         raise ValueError("HAS_PENDING_TASK")
 
-    structure = await match_content_structure(db, intent_id, platform_id)
+    structure, market_insights = await match_content_structure(db, intent_id, platform_id)
 
     conversion_scripts = await get_conversion_scripts(db, intent_id)
 
@@ -83,6 +83,7 @@ async def generate_task(
             fallback_content=structure.fallback_content,
             task_type=task_type,
             conversion_scripts=conversion_scripts,
+            market_insights=market_insights,
         )
     else:
         logger.warning(f"No content structure found for intent={intent_id}, platform={platform_id}")
@@ -119,11 +120,51 @@ async def generate_task(
     return task
 
 
+async def _get_market_insights(db: AsyncSession, platform_id: uuid.UUID) -> dict | None:
+    """获取市场热门数据作为 AI 创作参考"""
+    from app.models.market_hot import MarketHot
+
+    now = utc_now_naive()
+    result = await db.execute(
+        select(MarketHot).where(
+            MarketHot.platform_id == platform_id,
+            MarketHot.is_active.is_(True),
+            (MarketHot.expires_at.is_(None)) | (MarketHot.expires_at > now),
+        ).order_by(MarketHot.created_at.desc()).limit(5)
+    )
+    hots = result.scalars().all()
+
+    if not hots:
+        return None
+
+    insights = {
+        "hot_titles": [],
+        "hot_tags": [],
+        "emotional_patterns": [],
+        "high_engagement_hooks": [],
+        "content_themes": [],
+        "sentiment_summary": {},
+    }
+
+    for hot in hots:
+        if hot.analysis_result:
+            for key in insights.keys():
+                if key in hot.analysis_result and key != "sentiment_summary":
+                    insights[key].extend(hot.analysis_result[key])
+        if hot.comment_sentiment:
+            insights["sentiment_summary"] = hot.comment_sentiment
+
+    for key in ["hot_titles", "hot_tags", "emotional_patterns", "high_engagement_hooks", "content_themes"]:
+        insights[key] = list(set(insights[key]))[:10]
+
+    return insights
+
+
 async def match_content_structure(
     db: AsyncSession,
     intent_id: uuid.UUID,
     platform_id: uuid.UUID,
-) -> ContentStructure | None:
+) -> tuple[ContentStructure | None, dict | None]:
     from app.models.market_hot import MarketHot
 
     result = await db.execute(
@@ -136,7 +177,7 @@ async def match_content_structure(
     )
     structures = result.scalars().all()
     if not structures:
-        return None
+        return None, None
 
     now = utc_now_naive()
     hot_result = await db.execute(
@@ -163,7 +204,11 @@ async def match_content_structure(
         key=_effective_score,
         reverse=True,
     )
-    return _random.choice(sorted_structures[:3]) if len(sorted_structures) > 1 else sorted_structures[0]
+    structure = _random.choice(sorted_structures[:3]) if len(sorted_structures) > 1 else sorted_structures[0]
+
+    market_insights = await _get_market_insights(db, platform_id)
+
+    return structure, market_insights
 
 
 async def get_current_task(db: AsyncSession, user_id: uuid.UUID, platform_id: uuid.UUID | None = None) -> ContentTask | None:

@@ -9,7 +9,7 @@ from app.services.platform_scraper.cdp_browser import CdpBrowser, CdpConnectionE
 
 logger = logging.getLogger(__name__)
 
-DOUYIN_SEARCH_URL = "https://www.douyin.com/search/{keyword}?type=video"
+DOUYIN_SEARCH_URL = "https://www.douyin.com/search/{keyword}?type=video&sort_type={sort_type}"
 DOUYIN_VIDEO_URL = "https://www.douyin.com/video/{video_id}"
 DOUYIN_BASE_URL = "https://www.douyin.com"
 
@@ -29,8 +29,15 @@ class CdpDouyinScraper(BasePlatformScraper):
     def __init__(self, browser: CdpBrowser | None = None):
         self._browser = browser or CdpBrowser()
 
-    async def search_hot_videos(self, keyword: str, limit: int = 20) -> list[dict[str, Any]]:
-        url = DOUYIN_SEARCH_URL.format(keyword=keyword)
+    async def search_hot_videos(self, keyword: str, limit: int = 20, sort_type: int = 1) -> list[dict[str, Any]]:
+        """搜索抖音视频
+
+        Args:
+            keyword: 搜索关键词
+            limit: 返回结果数量限制
+            sort_type: 排序方式，0=综合排序, 1=最多点赞(默认), 2=最新发布
+        """
+        url = DOUYIN_SEARCH_URL.format(keyword=keyword, sort_type=sort_type)
         try:
             await self._browser.navigate(url, wait_seconds=7.0)
             text = await self._browser.get_page_text()
