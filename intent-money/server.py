@@ -118,7 +118,8 @@ ENV=development
         uv_cmd = get_cmd("uv")
         backend_cmd = [
             uv_cmd, "run", "uvicorn", "app.main:app",
-            "--reload", "--host", "127.0.0.1", "--port", "9090"
+            "--reload", "--reload-dir", "app",
+            "--host", "127.0.0.1", "--port", "9090"
         ]
         backend_proc = subprocess.Popen(
             backend_cmd,
@@ -137,11 +138,25 @@ ENV=development
         backend_thread.start()
         threads.append(backend_thread)
 
+        # 等待后端真正监听端口（最多 15 秒），避免在绑定失败时误报"已启动"
+        import socket
+        backend_ready = False
+        for _ in range(30):
+            if backend_proc.poll() is not None:
+                break
+            try:
+                with socket.create_connection(("127.0.0.1", 9090), timeout=0.5):
+                    backend_ready = True
+                    break
+            except OSError:
+                time.sleep(0.5)
+
+        if not backend_ready:
+            log("后端服务启动失败，请检查端口 9090 是否被占用", Colors.RED)
+            cleanup()
+
         log("后端服务已启动: http://127.0.0.1:9090")
         log("API 文档: http://127.0.0.1:9090/docs")
-
-        # 等待后端启动
-        time.sleep(3)
 
         # 启动前端
         log("启动前端服务 (Vue 3)...")
