@@ -1,0 +1,3 @@
+[submodule "intent-money/social-auto-upload"]
+	path = intent-money/social-auto-upload
+	url = https://github.com/dreammis/social-auto-upload.git
