@@ -1,10 +1,11 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.config import settings
 from app.database import get_db
 from app.models.user import User
 from app.models.content_task import ContentTask
@@ -14,7 +15,7 @@ from app.models.performance_report import PerformanceReport
 from app.models.platform import Platform
 from app.models.intent import Intent
 from app.schemas.report import ReportCreate, ReportResponse, DiagnosisOut as DiagnosisResultOut
-from app.schemas.task import TaskCreate, TaskOut, TaskHistoryOut
+from app.schemas.task import TaskCreate, TaskNextCreate, TaskOut, TaskHistoryOut, TaskOverviewOut
 from app.services.diagnosis_service import diagnose_performance
 from app.services.task_service import generate_task, get_current_task
 from app.services.conversion_service import get_conversion_scripts
@@ -41,8 +42,11 @@ async def _build_task_out(db: AsyncSession, task) -> TaskOut:
 
     return TaskOut(
         id=task.id,
+        intent_id=task.intent_id,
+        platform_id=task.platform_id,
         platform_name=platform_row.name if platform_row else "",
         status=task.status,
+        task_type=task.task_type,
         hook_text=task.hook_text,
         storyboard=task.storyboard,
         script_text=task.script_text,
@@ -140,6 +144,75 @@ async def get_task_history(
         ))
 
     return history_list
+
+
+@router.get("/overview", response_model=TaskOverviewOut)
+async def get_task_overview(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    today_start = utc_day_start_naive()
+    today_filter = (
+        ContentTask.user_id == current_user.id,
+        ContentTask.created_at >= today_start,
+    )
+
+    today_tasks = await db.scalar(
+        select(func.count(ContentTask.id)).where(*today_filter)
+    )
+    today_published = await db.scalar(
+        select(func.count(ContentTask.id)).where(
+            *today_filter,
+            ContentTask.status.in_(["PUBLISHED", "REPORTED", "DIAGNOSED"]),
+        )
+    )
+    today_pending = await db.scalar(
+        select(func.count(ContentTask.id)).where(
+            *today_filter,
+            ContentTask.status == "PENDING",
+        )
+    )
+    today_swapped = await db.scalar(
+        select(func.coalesce(func.sum(ContentTask.swap_count), 0)).where(*today_filter)
+    )
+
+    intent_result = await db.execute(
+        select(Intent.name, func.count(ContentTask.id))
+        .join(Intent, Intent.id == ContentTask.intent_id)
+        .where(*today_filter)
+        .group_by(Intent.name)
+        .order_by(func.count(ContentTask.id).desc(), Intent.name)
+    )
+    intent_distribution = [
+        {"intent_name": intent_name or "", "count": count}
+        for intent_name, count in intent_result.all()
+    ]
+
+    problem_result = await db.execute(
+        select(DiagnosisResult.problem_type, func.count(DiagnosisResult.id))
+        .join(ContentTask, ContentTask.id == DiagnosisResult.task_id)
+        .where(
+            ContentTask.user_id == current_user.id,
+            DiagnosisResult.problem_type != "normal",
+        )
+        .group_by(DiagnosisResult.problem_type)
+        .order_by(func.count(DiagnosisResult.id).desc(), DiagnosisResult.problem_type)
+    )
+    problem_stats = [
+        {"problem_type": problem_type, "count": count}
+        for problem_type, count in problem_result.all()
+    ]
+    total_problems = sum(item["count"] for item in problem_stats)
+
+    return TaskOverviewOut(
+        today_tasks=today_tasks or 0,
+        today_published=today_published or 0,
+        today_pending=today_pending or 0,
+        today_swapped=today_swapped or 0,
+        total_problems=total_problems,
+        intent_distribution=intent_distribution,
+        problem_stats=problem_stats,
+    )
 
 
 @router.post("", response_model=TaskOut)
@@ -256,13 +329,14 @@ async def swap_task(
     if task.created_at and task.created_at >= today_start:
         swap_count_today = task.swap_count
 
-    if swap_count_today >= 1:
+    if not settings.DEV_MODE and swap_count_today >= 1:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="今日换条次数已用",
         )
 
     await db.delete(task)
+    await db.commit()
 
     try:
         new_task = await generate_task(
@@ -280,6 +354,8 @@ async def swap_task(
         if error_msg == "HAS_PENDING_TASK":
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Has pending task")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"换条失败: {str(e)}")
 
     return await _build_task_out(db, new_task)
 
@@ -415,8 +491,7 @@ async def get_diagnosis(
 @router.post("/{task_id}/next", response_model=TaskOut)
 async def get_next_task(
     task_id: uuid.UUID,
-    platform_id: uuid.UUID = Query(...),
-    task_type: str = Query("video"),
+    data: TaskNextCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -445,8 +520,8 @@ async def get_next_task(
             db=db,
             user_id=current_user.id,
             intent_id=task.intent_id,
-            platform_id=platform_id,
-            task_type=task_type,
+            platform_id=data.platform_id or task.platform_id,
+            task_type=data.task_type or task.task_type,
             optimization_prompt=optimization_prompt,
             prev_task_id=task_id,
             diagnosis_id=diagnosis.id if diagnosis else None,

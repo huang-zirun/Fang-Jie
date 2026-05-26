@@ -10,6 +10,11 @@ class TaskCreate(BaseModel):
     task_type: str = "video"
 
 
+class TaskNextCreate(BaseModel):
+    platform_id: uuid.UUID | None = None
+    task_type: str | None = None
+
+
 class StoryboardShot(BaseModel):
     shot: int
     description: str
@@ -19,8 +24,11 @@ class StoryboardShot(BaseModel):
 
 class TaskOut(BaseModel):
     id: uuid.UUID
+    intent_id: uuid.UUID
+    platform_id: uuid.UUID
     platform_name: str = ""
     status: str = "PENDING"
+    task_type: str = "video"
     hook_text: str
     storyboard: list[StoryboardShot]
     script_text: str
@@ -55,3 +63,23 @@ class TaskHistoryOut(BaseModel):
     message_count: int | None = None
 
     model_config = {"from_attributes": True}
+
+
+class IntentDistributionItem(BaseModel):
+    intent_name: str
+    count: int
+
+
+class ProblemStatsItem(BaseModel):
+    problem_type: str
+    count: int
+
+
+class TaskOverviewOut(BaseModel):
+    today_tasks: int
+    today_published: int
+    today_pending: int
+    today_swapped: int
+    total_problems: int
+    intent_distribution: list[IntentDistributionItem]
+    problem_stats: list[ProblemStatsItem]
