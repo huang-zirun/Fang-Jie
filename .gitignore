@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+.venv/
+venv/
+env/
+*.egg
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+
+# IDE / personal tooling
+.claude/settings.local.json
+.joycode/
+intent-money/.trae/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# social-auto-upload is a submodule — ignore its internal .git
+intent-money/social-auto-upload/.git
