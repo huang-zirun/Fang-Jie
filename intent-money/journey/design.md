@@ -18,40 +18,27 @@
 
 ## 启动方式
 
-### 一键启动（CDP 模式）
+### 一键启动（推荐）
 
 ```bash
-cd intent-money/backend
-python server.py
+cd intent-money
+uv run python server.py
 ```
 
-脚本自动检测 Chrome CDP 是否已运行，未运行则自动启动 Chrome。
+`server.py` 同时启动后端（FastAPI + uvicorn）和前端（Vite），Ctrl+C 同时停止。
 
-### 仅启动后端（Chrome CDP 已手动启动）
+后端启动参数：`--reload --reload-dir app --host 127.0.0.1 --port 9090`
 
-```bash
-python server.py --no-chrome
-```
-
-### API 模式（不依赖 Chrome）
-
-```bash
-python server.py --api-mode
-```
-
-需要手动配置 `DOUYIN_COOKIE` 和 `XHS_COOKIE`。
+> 注意：必须带 `--reload-dir app`，否则 Windows 上 `--reload` 监听整个 backend/ 目录（含 .venv）会触发 WinError 10013。
 
 ### 手动分步启动
 
 ```bash
-# 1. 启动 Chrome CDP（使用已有 profile，保留登录态）
-"C:\Program Files\Google\Chrome\Application" --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1
-
-# 2. 启动后端
+# 1. 启动后端
 cd intent-money/backend
-uv run uvicorn app.main:app --host 127.0.0.1 --port 9090 --reload
+uv run uvicorn app.main:app --reload --reload-dir app --host 127.0.0.1 --port 9090
 
-# 3. 启动前端
+# 2. 启动前端
 cd intent-money/frontend
 npm run dev
 ```
@@ -112,7 +99,7 @@ curl -X POST "http://127.0.0.1:9090/api/v1/scraper/douyin/search?keyword=袜子&
 - 降级策略：全链路 try/except，失败返回空列表/None，记录日志
 
 ## 发布确认架构
-- auto_publisher.py: subprocess 调用 social-auto-upload
+- auto_publisher.py: CDP 优先 → sau CLI 降级 → 手动确认（CDP 使用 DOM.setFileInputFiles 真正上传文件，60秒超时自动降级）
 - cookie_manager.py: Cookie 文件存储在 backend/cookies/ 目录，7天过期
 - 任务详情页主入口为“确认已发放”：用户复制话术并手动发布到平台后，点击该按钮调用 `POST /api/v1/tasks/{id}/publish`，任务状态进入 `PUBLISHED`
 - 自动发布作为次级入口保留：优先尝试自动发布，失败后降级到手动确认
@@ -125,6 +112,32 @@ curl -X POST "http://127.0.0.1:9090/api/v1/scraper/douyin/search?keyword=袜子&
 ## 评论情感分析架构
 - sentiment_service.py: SnowNLP 轻量级中文情感分析
 - 评分规则：score >= 0.6 → positive, 0.4~0.6 → neutral, < 0.4 → negative
+
+## CDP 驱动内容生成架构
+
+### 设计目标
+将 CDP 抓取的市场热门数据直接注入 AI 内容生成流程，使生成的内容更贴近当前市场热点。
+
+### 数据流
+```
+CDP 抓取 → market_hots 表 → _get_market_insights() → AI Prompt → 生成内容
+```
+
+### 关键组件
+- `task_service._get_market_insights()`: 聚合 market_hots 分析数据
+- `ai_service._build_prompt()`: 在 prompt 中注入市场热门参考
+- `market_analyzer.py` (可选): 分析热门内容提取创作灵感
+
+### 数据格式
+market_insights 结构：
+- hot_titles: 热门标题列表
+- hot_tags: 热门标签
+- emotional_patterns: 情绪转换模式
+- high_engagement_hooks: 高互动钩子
+- sentiment_summary: 评论情感分析摘要
+
+### 降级策略
+当 market_insights 为空时，保持原有模板驱动生成逻辑。
 - 集成到数据抓取流程：抓取评论 → 批量情感分析 → 结果存入 market_hots.comment_sentiment
 - 诊断集成：正面 > 60% → 结构有效，负面 > 40% → 需优化
 
@@ -147,6 +160,10 @@ Phase 2 - 开源集成与核心闭环打通
   - 新增 `cdp_browser.py` / `cdp_xhs_scraper.py` / `cdp_douyin_scraper.py`
   - 通过 Chrome DevTools Protocol 连接已登录 Chrome 抓取数据
   - `CDP_ENABLED` 开关控制，默认启用，可降级到原始 API 模式
+- 2026-05-25：修复后端 WinError 10013 启动失败
+  - 根因：`--reload` 监听整个 `backend/` 目录（含 `.venv`），Windows 上文件句柄与 socket bind 竞争触发 10013
+  - 修复：添加 `--reload-dir app` 限制监听范围
+  - 修复：添加端口探针（`socket.create_connection` 轮询 15 秒），端口真正监听后才报告"已启动"
 
 ## UI 设计系统（2026-05-21 更新）
 
@@ -192,6 +209,9 @@ SENTIMENT_ENABLED=true # 情感分析开关
 CDP_ENABLED=true           # 是否使用 CDP 模式（连接已登录 Chrome 抓取数据）
 CDP_DEBUG_HOST=127.0.0.1   # Chrome 调试地址
 CDP_DEBUG_PORT=9222        # Chrome 调试端口
+
+# 开发模式配置
+DEV_MODE=false             # 开发模式开关，开启后无限换条（生产环境保持 false）
 ```
 
 ## 风险与约束
@@ -201,3 +221,22 @@ CDP_DEBUG_PORT=9222        # Chrome 调试端口
 - AI 内容质量不稳定 → 校验 + 兜底
 - 结构库质量依赖运营 → 需提前准备 20+ 模板 + 爆款提取审核机制
 - Cookie 有效期有限 → 7天过期检测 + 手动刷新机制（仅 API 模式需要）
+
+## 2026-05-26 下一条优化任务契约
+- `POST /api/v1/tasks/{task_id}/next` 使用 JSON body，不再依赖必填 query 参数。
+- body 字段可选：`platform_id`、`task_type`；缺省时后端沿用原任务的平台和任务类型。
+- `TaskOut` 输出 `intent_id`、`platform_id`、`task_type`，前端不得硬编码平台 ID。
+
+## 2026-05-26 AI 内容生成策略更新
+- 内容生成从“分销强转化话术”改为“平台原生内容优先，低压转化承接”。
+- 抖音生成重点：前3秒停留、视频动作、口播节奏、画面变化、评论互动。
+- 小红书生成重点：封面点击、真实笔记感、图文信息增量、收藏价值、场景/搭配/清单。
+- 评论区话术不再强制私信、链接、扣1、小黄车，而是以问题、场景、清单、搭配建议承接。
+- 校验层新增强营销短语拦截，降低“秒发链接/私信暗号/限时逼单”类输出。
+- AI 失败或旧结构 fallback 触发时，需先通过同一校验；不合格则使用安全兜底模板。
+## 2026-05-26 Operations dashboard data contract
+- The current-user operations dashboard must not call admin-only stats during anonymous startup.
+- Dashboard overview endpoint: `GET /api/v1/tasks/overview`.
+- Auth: any authenticated current user via `get_current_user`.
+- Response fields: `today_tasks`, `today_published`, `today_pending`, `today_swapped`, `total_problems`, `intent_distribution`, `problem_stats`.
+- Admin-only operational configuration remains under `/api/v1/admin/*` and keeps `require_admin`.
