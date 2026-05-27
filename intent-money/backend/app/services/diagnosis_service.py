@@ -388,7 +388,6 @@ async def _ai_deep_analysis_from_snapshots(
     if not settings.AI_API_KEY:
         return None
 
-    latest = snapshots[-1]
     snapshot_lines = []
     for s in snapshots:
         snapshot_lines.append(f"  - {s.snapshot_at.isoformat() if s.snapshot_at else 'N/A'}: 播放{s.play_count}, 评论{s.comment_count}, 私信{s.message_count} (来源: {s.source})")

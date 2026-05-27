@@ -10,14 +10,12 @@ from app.config import settings
 from app.database import get_db
 from app.models.content_task import ContentTask
 from app.models.diagnosis_result import DiagnosisResult
-from app.models.optimization_rule import OptimizationRule
 from app.models.performance_snapshot import PerformanceSnapshot
 from app.models.platform import Platform
 from app.models.user import User
 from app.schemas.performance_snapshot import SnapshotCreate, SnapshotOut, DeployDateUpdate
 from app.schemas.report import DiagnosisOut
 from app.services.diagnosis_service import diagnose_from_snapshots
-from app.utils.time import utc_now_naive
 
 logger = logging.getLogger(__name__)
 

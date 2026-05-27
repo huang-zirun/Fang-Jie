@@ -12,7 +12,6 @@ from app.models.content_task import ContentTask
 from app.models.diagnosis_result import DiagnosisResult
 from app.models.optimization_rule import OptimizationRule
 from app.models.performance_report import PerformanceReport
-from app.models.performance_snapshot import PerformanceSnapshot
 from app.models.platform import Platform
 from app.models.intent import Intent
 from app.schemas.report import ReportCreate, ReportResponse, DiagnosisOut as DiagnosisResultOut
