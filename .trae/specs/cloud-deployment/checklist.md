@@ -1,0 +1,13 @@
+- [x] Backend Dockerfile 构建成功，uvicorn 以非 root 用户运行
+- [x] Frontend Dockerfile 多阶段构建成功，Nginx 正确托管静态资源
+- [x] docker compose up -d 一键启动所有服务，80 端口可访问
+- [x] 前端页面通过 Nginx 正常加载（HTML、JS、CSS）
+- [x] API 请求通过 Nginx 正确代理到后端（/api/* 路由）
+- [x] Nginx 配置包含 Gzip 压缩、安全头部、静态资源缓存
+- [x] CDP_DEBUG_HOST 环境变量可配置远程 Chrome 地址
+- [x] CDP 不可用时爬取 API 返回明确错误，其他功能不受影响
+- [x] Chrome 启动脚本在 Windows 上正确启动远程调试模式
+- [x] frp 配置示例可正确穿透本地 9222 端口
+- [x] cloudflared 配置示例可正确穿透本地 9222 端口
+- [x] 部署文档包含完整的环境变量说明和一键部署步骤
+- [x] .env.example 文件包含所有必要的环境变量模板

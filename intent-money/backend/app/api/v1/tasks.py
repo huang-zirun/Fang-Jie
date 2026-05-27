@@ -12,10 +12,12 @@ from app.models.content_task import ContentTask
 from app.models.diagnosis_result import DiagnosisResult
 from app.models.optimization_rule import OptimizationRule
 from app.models.performance_report import PerformanceReport
+from app.models.performance_snapshot import PerformanceSnapshot
 from app.models.platform import Platform
 from app.models.intent import Intent
 from app.schemas.report import ReportCreate, ReportResponse, DiagnosisOut as DiagnosisResultOut
 from app.schemas.task import TaskCreate, TaskNextCreate, TaskOut, TaskHistoryOut, TaskOverviewOut
+from app.schemas.performance_snapshot import DeployDateUpdate
 from app.services.diagnosis_service import diagnose_performance
 from app.services.task_service import generate_task, get_current_task
 from app.services.conversion_service import get_conversion_scripts
@@ -40,6 +42,18 @@ async def _build_task_out(db: AsyncSession, task) -> TaskOut:
     if task.intent_id:
         conversion_scripts = await get_conversion_scripts(db, task.intent_id)
 
+    latest_snapshot = None
+    snapshot_count = 0
+    if task.snapshots:
+        snapshot_count = len(task.snapshots)
+        latest = task.snapshots[-1]
+        latest_snapshot = {
+            "play_count": latest.play_count,
+            "comment_count": latest.comment_count,
+            "message_count": latest.message_count,
+            "snapshot_at": latest.snapshot_at.isoformat() if latest.snapshot_at else None,
+        }
+
     return TaskOut(
         id=task.id,
         intent_id=task.intent_id,
@@ -58,8 +72,11 @@ async def _build_task_out(db: AsyncSession, task) -> TaskOut:
         prev_task_id=task.prev_task_id,
         created_at=task.created_at,
         published_at=task.published_at,
+        deployed_at=task.deployed_at,
         intent_name=intent_name,
         conversion_scripts=conversion_scripts,
+        latest_snapshot=latest_snapshot,
+        snapshot_count=snapshot_count,
     )
 
 
@@ -121,10 +138,17 @@ async def get_task_history(
         play_count = None
         comment_count = None
         message_count = None
+        snapshot_count = 0
         if task.report:
             play_count = task.report.play_count
             comment_count = task.report.comment_count
             message_count = task.report.message_count
+        if task.snapshots:
+            snapshot_count = len(task.snapshots)
+            latest_snap = task.snapshots[-1]
+            play_count = latest_snap.play_count
+            comment_count = latest_snap.comment_count
+            message_count = latest_snap.message_count
 
         history_list.append(TaskHistoryOut(
             id=task.id,
@@ -136,11 +160,13 @@ async def get_task_history(
             title=task.title,
             created_at=task.created_at,
             published_at=task.published_at,
+            deployed_at=task.deployed_at,
             problem_type=problem_type,
             problem_desc=problem_desc,
             play_count=play_count,
             comment_count=comment_count,
             message_count=message_count,
+            snapshot_count=snapshot_count,
         ))
 
     return history_list
@@ -284,6 +310,7 @@ async def get_task(
 @router.post("/{task_id}/publish")
 async def publish_task(
     task_id: uuid.UUID,
+    deploy_data: DeployDateUpdate | None = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -298,10 +325,14 @@ async def publish_task(
     if task_row.status != "PENDING":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Task status incorrect")
 
+    values = {"status": "PUBLISHED", "published_at": utc_now_naive()}
+    if deploy_data and deploy_data.deployed_at:
+        values["deployed_at"] = deploy_data.deployed_at
+
     await db.execute(
         update(ContentTask)
         .where(ContentTask.id == task_id)
-        .values(status="PUBLISHED", published_at=utc_now_naive())
+        .values(**values)
     )
     await db.commit()
 
@@ -335,7 +366,8 @@ async def swap_task(
             detail="今日换条次数已用",
         )
 
-    await db.delete(task)
+    # 先将旧任务标记为 SWAPPED，避免 generate_task 的 pending 检查冲突
+    task.status = "SWAPPED"
     await db.commit()
 
     try:
@@ -346,21 +378,30 @@ async def swap_task(
             platform_id=task.platform_id,
             task_type=task.task_type,
         )
-        new_task.swap_count = swap_count_today + 1
-        await db.commit()
-        await db.refresh(new_task)
     except ValueError as e:
         error_msg = str(e)
         if error_msg == "HAS_PENDING_TASK":
+            # 理论上不会到这里（已标记 SWAPPED），但安全起见恢复旧任务
+            task.status = "PENDING"
+            await db.commit()
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Has pending task")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)
     except Exception as e:
+        # 生成失败，恢复旧任务状态
+        task.status = "PENDING"
+        await db.commit()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"换条失败: {str(e)}")
+
+    # 新任务生成成功，删除旧任务
+    await db.delete(task)
+    new_task.swap_count = swap_count_today + 1
+    await db.commit()
+    await db.refresh(new_task)
 
     return await _build_task_out(db, new_task)
 
 
-@router.post("/{task_id}/report", response_model=ReportResponse)
+@router.post("/{task_id}/report", response_model=ReportResponse, deprecated=True)
 async def report_task(
     task_id: uuid.UUID,
     data: ReportCreate,

@@ -1,7 +1,10 @@
+import uuid
+from datetime import datetime
+
 from pydantic import BaseModel, field_validator
 
 
-class ReportCreate(BaseModel):
+class SnapshotCreate(BaseModel):
     play_count: int
     comment_count: int
     message_count: int
@@ -21,20 +24,27 @@ class ReportCreate(BaseModel):
         return v
 
 
-class DiagnosisOut(BaseModel):
-    problem_type: str
-    problem_desc: str
-    optimization_direction: str
-    optimization_detail: str
-    ai_analysis: str | None = None
-    rule_confidence: float | None = None
-    snapshot_count: int = 0
-    days_since_deploy: int = 0
-    play_trend: str | None = None
-    avg_daily_play_growth: float = 0.0
+class SnapshotOut(BaseModel):
+    id: uuid.UUID
+    task_id: uuid.UUID
+    play_count: int
+    comment_count: int
+    message_count: int
+    source: str = "manual"
+    snapshot_at: datetime
 
     model_config = {"from_attributes": True}
 
 
-class ReportResponse(BaseModel):
-    diagnosis: DiagnosisOut
+class DeployDateUpdate(BaseModel):
+    deployed_at: datetime | None = None
+
+
+class SnapshotSummaryOut(BaseModel):
+    total_snapshots: int
+    days_since_deploy: int
+    play_trend: str
+    latest_play_count: int
+    avg_daily_play_growth: float
+
+    model_config = {"from_attributes": True}

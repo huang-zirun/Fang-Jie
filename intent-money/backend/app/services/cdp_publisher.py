@@ -55,10 +55,11 @@ class CdpPublisher:
     - xiaohongshu.com (for XHS publishing)
     """
 
-    def __init__(self, host: str | None = None, port: int | None = None):
+    def __init__(self, host: str | None = None, port: int | None = None, scheme: str | None = None):
         host = host or settings.CDP_DEBUG_HOST
         port = port or settings.CDP_DEBUG_PORT
-        self._browser = CdpBrowser(host=host, port=port)
+        scheme = scheme or settings.CDP_DEBUG_SCHEME
+        self._browser = CdpBrowser(host=host, port=port, scheme=scheme)
 
     # ── Health check ────────────────────────────────────────────────────
 

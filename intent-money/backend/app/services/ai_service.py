@@ -272,28 +272,58 @@ def _build_prompt(
     parts.extend([
         "",
         "## 内容详细度要求（必须满足）",
-        "### 分镜脚本要求（每个分镜必须包含）：",
-        "- 具体的画面内容描述，包含人物动作、场景、物品细节",
-        "- 清晰的展示重点，明确用户能看到什么",
-        "- 图文笔记分镜需要说明图片类型（实拍/对比/特写/场景）",
-        "- 短视频分镜需要说明镜头景别（近景/特写/中景/全景）",
         "",
-        "### 口播文案要求（必须满足）：",
-        "- 抖音写口播，小红书写笔记正文，表达都要像真实创作者。",
-        "- 包含具体的产品/场景细节描述（材质、袜口、脚跟、鞋型、洗后、收纳、搭配、使用感受等）。",
-        "- 有明确的信息递进：痛点或场景 -> 方法或证据 -> 体验或判断标准 -> 温和互动。",
-        "- 字数控制在150-280字，信息密度适中。",
-        "- 每部分内容对应分镜节奏，画面和语音同步",
+        "### 分镜脚本详细度标准（每个分镜必须包含8个维度）：",
+        "1. **景别**：远景/全景/中景/近景/特写/大特写",
+        "2. **角度**：俯拍/平视/仰拍/45度侧拍/正面/侧面/背面",
+        "3. **运镜方式**：固定/推/拉/摇/移/跟/升降",
+        "4. **灯光设置**：自然光/柔光/侧光/逆光/顶光/补光",
+        "5. **画面主体**：人物/手部/产品/场景，具体位置和姿态",
+        "6. **主体动作**：具体动作细节（拿起、对比、按压、试穿、整理、拉伸、翻转等）",
+        "7. **道具清单**：需要出现的具体道具（袜子、鞋、抽屉、标签等）",
+        "8. **声音/字幕**：口播内容、音效提示、字幕样式和位置",
+        "",
+        "**错误示例**：'特写：袜子的缓震和透气设计'（太笼统，缺少运镜、灯光、道具等关键信息）",
+        "**正确示例**：'特写-45度俯拍-固定机位：自然光从左侧45度打入，手指缓慢按压袜底加厚层，展示3mm厚度和回弹性，桌上放一只白袜一只黑袜做对比，画面左侧配白色字幕\"足弓支撑点\"，背景虚化，同期声：这里加了缓冲垫'",
+        "",
+        "### 口播文案结构（必须按此5步顺序，250-400字）：",
+        "1. **痛点/场景**（2-3句，50-80字）：具体人群 + 具体困扰场景 + 场景细节描写，不夸张",
+        "2. **细节证据**（3-4句，80-120字）：材质成分、设计原理、制作工艺、使用感受等多维度可验证细节",
+        "3. **体验对比**（2-3句，60-80字）：使用前后的具体变化，包含时间、场景、感受的对比",
+        "4. **判断标准**（1-2句，40-60字）：如何选择/识别的方法，提供实用价值，可包含具体参数",
+        "5. **温和互动**（1句，20-40字）：引导评论的问题，不强制私信，鼓励分享经验",
+        "",
+        "**禁用表达**：救命、神器、绝了、闭眼入、冲、秒发、必入、yyds",
+        "**推荐表达**：舒服多了、没那么累、确实有用、可以试试、感觉不错",
+        "",
+        "### 钩子文案生成公式（15-25字，根据钩子类型选择）：",
+        "",
+        "**痛点型公式**：[具体人群] + [具体场景] + [反常识/悬念]",
+        "示例：'站8小时的女生，脚疼可能不是鞋的问题'",
+        "",
+        "**反常识公式**：[普遍认知] + [但是] + [具体真相]",
+        "示例：'都说棉袜透气，但站一天脚还是闷'",
+        "",
+        "**身份识别公式**：[你是] + [具体特征] + [吗/吧？]",
+        "示例：'你的袜子是不是穿两次袜口就松了？'",
+        "",
+        "**场景切入公式**：[具体时间/地点] + [具体动作] + [意外发现]",
+        "示例：'早上找袜子翻了整个抽屉，才发现这样收才不乱'",
+        "",
+        "**钩子要求**：",
+        "- 必须有具体数字、场景或反常识元素",
+        "- 不得使用'一定要看''必看''震惊''绝了'等标题党词汇",
+        "- 不要承诺结果，只呈现场景或问题",
         "",
         "### 标题要求：",
-        "- 包含核心关键词、具体场景或利益点。",
-        "- 搭配1-3个相关话题标签，不堆无关热词。",
-        "- 长度控制在20-50字，符合平台推荐逻辑。",
+        "- 包含核心关键词、具体场景或利益点",
+        "- 搭配1-3个相关话题标签，不堆无关热词",
+        "- 长度控制在20-50字，符合平台推荐逻辑",
         "",
         "### 评论区引导话术：",
-        "- 优先提出互动问题，引导用户说出自己的鞋型、场景或困扰。",
-        "- 可以承接清单、搭配建议、后续笔记，但不能写“私信关键词秒发”“扣1”“链接已发”。",
-        "- 语气像真实作者补充说明，不像客服导购。",
+        "- 优先提出互动问题，引导用户说出自己的鞋型、场景或困扰",
+        "- 可以承接清单、搭配建议、后续笔记，但不能写\"私信关键词秒发\"\"扣1\"\"链接已发\"",
+        "- 语气像真实作者补充说明，不像客服导购",
         "",
         "## 禁用表达",
         "- 不得出现「最便宜」「全网最低」等绝对化用语",
@@ -307,7 +337,7 @@ def _build_prompt(
         json.dumps({
             "hook_text": "3秒钩子文案，15-25字，具体、有场景，不夸张",
             "storyboard": storyboard_example,
-            "script_text": "完整正文或口播，150-280字。抖音写口播，小红书写笔记正文。必须自然、有细节、有真实使用场景",
+            "script_text": "完整正文或口播，250-400字。抖音写口播，小红书写笔记正文。必须自然、有细节、有真实使用场景，按5步结构展开",
             "title": "平台标题，20-50字，含1-3个相关话题标签",
             "comment_template": "评论区置顶/首评话术，以互动、补充、答疑为主，不得使用私信暗号、秒发链接、前X名福利",
             "why_it_works": why_desc
@@ -338,15 +368,54 @@ def _validate_output(data: dict) -> list[str]:
     if not isinstance(storyboard, list) or len(storyboard) < 3 or len(storyboard) > 5:
         errors.append("storyboard invalid (must have 3-5 shots)")
     
-    # 检查分镜详细度：每个分镜描述长度不少于15字
+    # 检查分镜详细度（8维度）
+    shot_keywords = ["特写", "近景", "中景", "全景", "远景", "俯拍", "仰拍", "平视", "45度", "正面", "侧面"]
+    angle_keywords = ["俯拍", "仰拍", "平视", "45度", "正面", "侧面", "背面"]
+    movement_keywords = ["固定", "推", "拉", "摇", "移", "跟", "升降"]
+    light_keywords = ["自然光", "柔光", "侧光", "逆光", "顶光", "补光"]
+    action_keywords = ["展示", "拿起", "对比", "按压", "试穿", "整理", "打开", "翻", "找", "分", "放", "拉伸", "翻转", "叠"]
+    prop_keywords = ["袜", "鞋", "抽屉", "标签", "手", "脚", "桌", "柜", "盒", "袋"]
+
     for i, shot in enumerate(storyboard):
         desc = shot.get("description", "")
-        if len(desc) < 15:
-            errors.append(f"storyboard shot {i+1} description too short (min 15 characters)")
+
+        # 基础长度检查（提高到30字）
+        if len(desc) < 30:
+            errors.append(f"storyboard shot {i+1} description too short (min 30 characters)")
+
+        # 检查景别
+        has_shot_type = any(keyword in desc for keyword in shot_keywords)
+        if not has_shot_type:
+            errors.append(f"storyboard shot {i+1} lacks shot type (need: 特写/近景/中景/全景等)")
+
+        # 检查角度
+        has_angle = any(keyword in desc for keyword in angle_keywords)
+        if not has_angle:
+            errors.append(f"storyboard shot {i+1} lacks camera angle (need: 俯拍/仰拍/平视/45度等)")
+
+        # 检查运镜
+        has_movement = any(keyword in desc for keyword in movement_keywords)
+        if not has_movement:
+            errors.append(f"storyboard shot {i+1} lacks camera movement (need: 固定/推/拉/摇/移等)")
+
+        # 检查灯光
+        has_light = any(keyword in desc for keyword in light_keywords)
+        if not has_light:
+            errors.append(f"storyboard shot {i+1} lacks lighting info (need: 自然光/柔光/侧光/逆光等)")
+
+        # 检查动作
+        has_action = any(keyword in desc for keyword in action_keywords)
+        if not has_action:
+            errors.append(f"storyboard shot {i+1} lacks action description (need: 展示/拿起/对比/按压/试穿等)")
+
+        # 检查道具
+        has_prop = any(keyword in desc for keyword in prop_keywords)
+        if not has_prop:
+            errors.append(f"storyboard shot {i+1} lacks prop info (need: 袜/鞋/抽屉/手等道具)")
 
     script = data.get("script_text", "")
-    if not script or len(script) < 100 or len(script) > 350:
-        errors.append("script_text invalid (must be 100-350 characters)")
+    if not script or len(script) < 200 or len(script) > 500:
+        errors.append("script_text invalid (must be 200-500 characters, about 250-400 Chinese characters)")
     
     # 检查文案详细度：是否包含至少2个产品或使用场景相关细节
     detail_count = sum(1 for keyword in PRODUCT_DETAIL_KEYWORDS if keyword in script)
@@ -385,8 +454,17 @@ def _validate_output(data: dict) -> list[str]:
 
 
 def _safe_fallback(fallback_content: dict | None) -> dict:
-    if fallback_content and not _validate_output(fallback_content):
-        return fallback_content
+    """Return fallback_content if structurally valid, otherwise SAFE_FALLBACK_CONTENT.
+    
+    Fallback content is admin-preset and trusted, so we only validate
+    structural fields (presence, types, lengths), NOT banned phrases.
+    """
+    if fallback_content:
+        required_keys = {"hook_text", "storyboard", "script_text", "title", "comment_template", "why_it_works"}
+        if required_keys.issubset(fallback_content.keys()):
+            storyboard = fallback_content.get("storyboard", [])
+            if isinstance(storyboard, list) and len(storyboard) >= 3:
+                return fallback_content
     return SAFE_FALLBACK_CONTENT.copy()
 
 

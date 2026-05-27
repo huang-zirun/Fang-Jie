@@ -6,6 +6,7 @@ from typing import Any
 
 from app.services.platform_scraper.base_scraper import BasePlatformScraper
 from app.services.platform_scraper.cdp_browser import CdpBrowser, CdpConnectionError
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,11 @@ class CdpDouyinScraper(BasePlatformScraper):
     """
 
     def __init__(self, browser: CdpBrowser | None = None):
-        self._browser = browser or CdpBrowser()
+        self._browser = browser or CdpBrowser(
+            host=settings.CDP_DEBUG_HOST,
+            port=settings.CDP_DEBUG_PORT,
+            scheme=settings.CDP_DEBUG_SCHEME,
+        )
 
     async def search_hot_videos(self, keyword: str, limit: int = 20, sort_type: int = 1) -> list[dict[str, Any]]:
         """搜索抖音视频

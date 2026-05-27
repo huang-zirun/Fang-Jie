@@ -30,7 +30,9 @@ class ContentTask(Base):
     diagnosis_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("diagnosis_results.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deployed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     user = relationship("User", back_populates="tasks")
     report = relationship("PerformanceReport", back_populates="task", uselist=False, lazy="selectin")
     diagnosis = relationship("DiagnosisResult", back_populates="task", uselist=False, lazy="selectin", foreign_keys=[diagnosis_id])
+    snapshots = relationship("PerformanceSnapshot", back_populates="task", order_by="PerformanceSnapshot.snapshot_at", lazy="selectin")

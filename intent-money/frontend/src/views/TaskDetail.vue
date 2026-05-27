@@ -58,7 +58,7 @@
       <CyberCard>
         <div class="card-header">
           <div class="card-bar" style="background: var(--neon-purple)"></div>
-          <h3 class="card-title">分镜脚本</h3>
+          <h3 class="card-title">{{ storyboardTitle }}</h3>
         </div>
         <div class="storyboard">
           <div v-for="shot in task.storyboard" :key="shot.shot" class="shot-item">
@@ -75,7 +75,7 @@
       <CyberCard>
         <div class="card-header">
           <div class="card-bar" style="background: var(--neon-cyan)"></div>
-          <h3 class="card-title">口播文案</h3>
+          <h3 class="card-title">{{ scriptTitle }}</h3>
           <button class="copy-btn" @click.stop="copyText(task.script_text, 'script_text')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
@@ -177,13 +177,9 @@
     <!-- Bottom Actions -->
     <div class="task-actions">
       <template v-if="task?.status === 'PENDING'">
-        <CyberButton variant="primary" size="large" block :loading="publishState === 'confirming'" @click="handleManualConfirm">
-          确认已发放
-        </CyberButton>
-        <div class="manual-publish-hint">复制话术并发到平台后，点这里进入数据回填</div>
         <div class="action-row">
-          <CyberButton variant="secondary" size="default" :loading="publishState === 'publishing'" @click="handlePublish">
-            自动发布
+          <CyberButton variant="primary" size="large" :loading="publishState === 'confirming'" @click="handleManualConfirm">
+            请手动复制发布
           </CyberButton>
           <CyberButton variant="ghost" size="default" @click="handleSwap">
             换一条
@@ -268,6 +264,27 @@ const ipScripts = computed<ConversionScriptItem[]>(() => {
   return task.value.conversion_scripts.public_to_private || []
 })
 
+const storyboardTitle = computed(() => {
+  if (task.value?.platform_name?.includes('小红书')) {
+    return '图文脚本'
+  }
+  return '分镜脚本'
+})
+
+const scriptTitle = computed(() => {
+  if (task.value?.platform_name?.includes('小红书')) {
+    return '笔记正文'
+  }
+  return '口播文案'
+})
+
+const copyHintText = computed(() => {
+  if (task.value?.platform_name?.includes('小红书')) {
+    return '标题和正文已可复制'
+  }
+  return '标题和文案已可复制'
+})
+
 const formatScripts = (scripts: Record<string, string> | string): string => {
   if (typeof scripts === 'string') return scripts
   return Object.entries(scripts)
@@ -348,7 +365,7 @@ const handlePublish = async () => {
       try {
         await showConfirmDialog({
           title: '自动发布不可用',
-          message: `${data.error || '自动发布失败'}，是否手动确认发布？\n\n提示：标题和文案已可复制`,
+          message: `${data.error || '自动发布失败'}，是否手动确认发布？\n\n提示：${copyHintText}`,
           confirmButtonText: '确认已发布',
           cancelButtonText: '取消',
         })
@@ -368,7 +385,7 @@ const handlePublish = async () => {
     try {
       await showConfirmDialog({
         title: '自动发布失败',
-        message: '是否手动确认发布？\n\n提示：标题和文案已可复制',
+        message: `是否手动确认发布？\n\n提示：${copyHintText}`,
         confirmButtonText: '确认已发布',
         cancelButtonText: '取消',
       })
@@ -399,10 +416,17 @@ const handleSwap = async () => {
   } catch {
     return
   }
+  const oldId = task.value.id
   const toast = showLoadingToast({ message: '生成新任务...', forbidClick: true, duration: 0 })
   try {
     const res = await swapTask(task.value.id)
-    task.value = res.data.task || res.data
+    const newTask = res.data.task || res.data
+    if (newTask.id === oldId) {
+      showToast('换条未生效，请重试')
+      return
+    }
+    task.value = newTask
+    router.replace(`/task/${newTask.id}`)
     showToast({ message: '已换一条', icon: 'checked' })
   } catch (e: any) {
     const detail = e?.response?.data?.detail
@@ -700,13 +724,6 @@ const handleSwap = async () => {
   flex-direction: column;
   gap: 10px;
   z-index: 50;
-}
-
-.manual-publish-hint {
-  text-align: center;
-  color: var(--ink-gray);
-  font-size: 12px;
-  line-height: 1.5;
 }
 
 .action-row {

@@ -39,8 +39,8 @@ async def seed_platforms(db: AsyncSession):
     if result.scalars().first():
         return
     platforms = [
-        Platform(id=PLATFORM_ID_DOUYIN, name="抖音", is_active=True),
-        Platform(id=PLATFORM_ID_XIAOHONGSHU, name="小红书", is_active=True),
+        Platform(id=PLATFORM_ID_DOUYIN, name="抖音（短视频）", is_active=True),
+        Platform(id=PLATFORM_ID_XIAOHONGSHU, name="小红书（图文）", is_active=True),
     ]
     db.add_all(platforms)
     await db.commit()

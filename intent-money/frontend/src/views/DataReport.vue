@@ -25,13 +25,13 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="5 3 19 12 5 21 5 3"/>
               </svg>
-              播放量
+              {{ playCountLabel }}
             </label>
             <van-field
               v-model="form.play_count"
               name="play_count"
               type="digit"
-              placeholder="请输入播放量"
+              :placeholder="`请输入${playCountLabel}`"
               required
               class="custom-field"
             />
@@ -212,6 +212,13 @@ const aiAnalysis = computed<AiAnalysisData | null>(() => {
   return diagnosis.value.ai_analysis
 })
 
+const playCountLabel = computed(() => {
+  if (task.value?.platform_name?.includes('小红书')) {
+    return '阅读量'
+  }
+  return '播放量'
+})
+
 const form = ref({
   play_count: '',
   comment_count: '',
@@ -271,7 +278,7 @@ const getNextTask = async () => {
   try {
     await showDialog({
       title: '优化方案确认',
-      message: `问题：${diagnosis.value.problem_desc}\n\n优化方向：${diagnosis.value.optimization_direction}\n\n具体措施：${suggestions}\n\n预期效果：优化后播放量预计提升30%+`,
+      message: `问题：${diagnosis.value.problem_desc}\n\n优化方向：${diagnosis.value.optimization_direction}\n\n具体措施：${suggestions}\n\n预期效果：优化后${playCountLabel}预计提升30%+`,
       confirmButtonText: '确认生成',
       confirmButtonColor: 'var(--neon-gold)',
       showCancelButton: true,

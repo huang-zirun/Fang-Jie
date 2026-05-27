@@ -1,0 +1,7 @@
+tunnel: YOUR_TUNNEL_ID
+credentials-file: /path/to/YOUR_TUNNEL_ID.json
+
+ingress:
+  - hostname: your-subdomain.yourdomain.com
+    service: http://127.0.0.1:9222
+  - service: status_code:404

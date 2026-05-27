@@ -7,6 +7,7 @@ from app.models.intent import Intent
 from app.models.market_hot import MarketHot
 from app.models.optimization_rule import OptimizationRule
 from app.models.performance_report import PerformanceReport
+from app.models.performance_snapshot import PerformanceSnapshot
 from app.models.platform import Platform
 from app.models.session import UserSession
 from app.models.user import User
@@ -22,6 +23,7 @@ __all__ = [
     "ContentTask",
     "ConversionPath",
     "PerformanceReport",
+    "PerformanceSnapshot",
     "DiagnosisResult",
     "OptimizationRule",
     "MarketHot",

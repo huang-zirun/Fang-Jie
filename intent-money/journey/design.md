@@ -240,3 +240,13 @@ DEV_MODE=false             # 开发模式开关，开启后无限换条（生产
 - Auth: any authenticated current user via `get_current_user`.
 - Response fields: `today_tasks`, `today_published`, `today_pending`, `today_swapped`, `total_problems`, `intent_distribution`, `problem_stats`.
 - Admin-only operational configuration remains under `/api/v1/admin/*` and keeps `require_admin`.
+
+## 2026-05-27 小红书文案语境优化
+- 任务详情页文案根据平台动态切换：
+  - "分镜脚本" → 小红书显示"图文脚本"
+  - "口播文案" → 小红书显示"笔记正文"
+  - 提示语"标题和文案已可复制" → 小红书显示"标题和正文已可复制"
+- 数据回填页文案根据平台动态切换：
+  - "播放量" → 小红书显示"阅读量"
+- 实现方式：前端 Vue computed 属性根据 `platform_name` 是否包含"小红书"动态返回对应文案
+- 修改文件：`frontend/src/views/TaskDetail.vue`, `frontend/src/views/DataReport.vue`

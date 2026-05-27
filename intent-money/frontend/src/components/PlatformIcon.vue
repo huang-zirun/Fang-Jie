@@ -1,6 +1,6 @@
 <template>
   <img
-    v-if="platform === 'douyin' || platform === '抖音'"
+    v-if="platform === 'douyin' || platform.includes('抖音')"
     src="../assets/douyin-logo.svg"
     :width="size"
     :height="size"
@@ -9,7 +9,7 @@
   />
 
   <img
-    v-else-if="platform === 'xiaohongshu' || platform === '小红书'"
+    v-else-if="platform === 'xiaohongshu' || platform.includes('小红书')"
     src="../assets/xiaohongshu-logo.svg"
     :width="size"
     :height="size"

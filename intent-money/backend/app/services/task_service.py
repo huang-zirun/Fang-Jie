@@ -41,6 +41,7 @@ async def generate_task(
     optimization_prompt: str | None = None,
     prev_task_id: uuid.UUID | None = None,
     diagnosis_id: uuid.UUID | None = None,
+    skip_pending_check: bool = False,
 ) -> ContentTask:
     intent_result = await db.execute(select(Intent).where(Intent.id == intent_id))
     intent = intent_result.scalars().first()
@@ -53,19 +54,20 @@ async def generate_task(
         raise ValueError("Platform not available")
 
     today_start = utc_day_start_naive()
-    existing = await db.execute(
-        select(ContentTask).where(
-            and_(
-                ContentTask.user_id == user_id,
-                ContentTask.platform_id == platform_id,
-                ContentTask.status.in_(["PENDING", "PUBLISHED"]),
-                ContentTask.created_at >= today_start,
+    if not skip_pending_check:
+        existing = await db.execute(
+            select(ContentTask).where(
+                and_(
+                    ContentTask.user_id == user_id,
+                    ContentTask.platform_id == platform_id,
+                    ContentTask.status.in_(["PENDING", "PUBLISHED"]),
+                    ContentTask.created_at >= today_start,
+                )
             )
         )
-    )
-    existing_task = existing.scalars().first()
-    if existing_task:
-        raise ValueError("HAS_PENDING_TASK")
+        existing_task = existing.scalars().first()
+        if existing_task:
+            raise ValueError("HAS_PENDING_TASK")
 
     structure, market_insights = await match_content_structure(db, intent_id, platform_id)
 

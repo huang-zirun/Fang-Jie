@@ -23,18 +23,19 @@ function flush(useBeaconOnly = false) {
     events: buffer.slice(0, MAX_BATCH_SIZE),
   }
   buffer = buffer.slice(payload.events.length)
-  const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' })
   const token = localStorage.getItem('token')
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
-  
-  if (navigator.sendBeacon) {
-    navigator.sendBeacon('/api/v1/events', blob)
+
+  // beforeunload 场景：优先 sendBeacon（无法设自定义 header），token 通过 query param 传递
+  if (useBeaconOnly && navigator.sendBeacon) {
+    const url = token ? `/api/v1/events?token=${encodeURIComponent(token)}` : '/api/v1/events'
+    const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' })
+    navigator.sendBeacon(url, blob)
     return
   }
-  
-  if (useBeaconOnly) return
-  
+
+  // 常规场景：用 fetch + Authorization header，确保认证正常
   fetch('/api/v1/events', { method: 'POST', body: JSON.stringify(payload), headers, keepalive: true }).catch(() => {})
 }
 

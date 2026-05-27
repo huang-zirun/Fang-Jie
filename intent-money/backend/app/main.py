@@ -51,6 +51,16 @@ async def weekly_evolution():
             logger.error(f"Evolution failed: {e}")
 
 
+async def periodic_snapshot_fetch():
+    while True:
+        await asyncio.sleep(7200)
+        try:
+            from app.services.snapshot_scheduler import scheduled_snapshot_fetch
+            await scheduled_snapshot_fetch()
+        except Exception as e:
+            logger.error(f"Periodic snapshot fetch failed: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
@@ -59,6 +69,7 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(daily_market_analysis())
     asyncio.create_task(daily_scrape_hot_videos())
     asyncio.create_task(weekly_evolution())
+    asyncio.create_task(periodic_snapshot_fetch())
     yield
 
 

@@ -31,9 +31,10 @@ class CdpBrowser:
         await browser.close()
     """
 
-    def __init__(self, host: str = "127.0.0.1", port: int = 9222):
+    def __init__(self, host: str = "127.0.0.1", port: int = 9222, scheme: str = "http"):
         self._host = host
         self._port = port
+        self._scheme = scheme
         self._ws: websockets.ClientConnection | None = None
         self._page_id: str | None = None
         self._cmd_id = 0
@@ -41,7 +42,7 @@ class CdpBrowser:
 
     @property
     def _cdp_base(self) -> str:
-        return f"http://{self._host}:{self._port}"
+        return f"{self._scheme}://{self._host}:{self._port}"
 
     async def _get_or_create_page(self) -> str:
         """Get existing page id or create a new one."""
@@ -83,7 +84,8 @@ class CdpBrowser:
                 self._ws = None
 
         page_id = await self._get_or_create_page()
-        ws_url = f"ws://{self._host}:{self._port}/devtools/page/{page_id}"
+        ws_scheme = "wss" if self._scheme == "https" else "ws"
+        ws_url = f"{ws_scheme}://{self._host}:{self._port}/devtools/page/{page_id}"
 
         try:
             self._ws = await websockets.connect(ws_url, max_size=10 * 1024 * 1024)

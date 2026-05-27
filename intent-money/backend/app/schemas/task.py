@@ -40,8 +40,11 @@ class TaskOut(BaseModel):
     prev_task_id: uuid.UUID | None = None
     created_at: datetime
     published_at: datetime | None = None
+    deployed_at: datetime | None = None
     intent_name: str | None = None
     conversion_scripts: dict | None = None
+    latest_snapshot: dict | None = None
+    snapshot_count: int = 0
 
     model_config = {"from_attributes": True}
 
@@ -56,11 +59,13 @@ class TaskHistoryOut(BaseModel):
     title: str = ""
     created_at: datetime
     published_at: datetime | None = None
+    deployed_at: datetime | None = None
     problem_type: str | None = None
     problem_desc: str | None = None
     play_count: int | None = None
     comment_count: int | None = None
     message_count: int | None = None
+    snapshot_count: int = 0
 
     model_config = {"from_attributes": True}
 
