@@ -66,7 +66,6 @@ def upgrade() -> None:
         sa.Column('prompt_template', sa.Text(), nullable=False),
         sa.Column('fallback_content', sa.JSON(), nullable=False),
         sa.Column('priority', sa.Integer(), nullable=False, server_default='0'),
-        sa.Column('market_score', sa.Float(), nullable=False, server_default='0.0'),
         sa.Column('is_active', sa.Boolean(), nullable=False, server_default='1'),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
