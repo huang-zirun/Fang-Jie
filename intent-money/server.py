@@ -84,6 +84,51 @@ def check_cdp_available() -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(("127.0.0.1", CDP_PORT)) == 0
 
+def check_port_available(host: str, port: int) -> bool:
+    """检查端口是否可用"""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind((host, port))
+            return True
+        except OSError:
+            return False
+
+def kill_process_on_port(port: int) -> bool:
+    """在 Windows 上强制终止占用指定端口的进程"""
+    if sys.platform != "win32":
+        return False
+    try:
+        result = subprocess.run(
+            f'netstat -ano | findstr ":{port}"',
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        if not result.stdout.strip():
+            return True
+
+        pids = set()
+        for line in result.stdout.strip().split('\n'):
+            parts = line.split()
+            if len(parts) >= 5:
+                pids.add(parts[-1])
+
+        for pid in pids:
+            try:
+                subprocess.run(
+                    f'taskkill /F /PID {pid}',
+                    shell=True,
+                    capture_output=True,
+                    timeout=5
+                )
+                log(f"已终止占用端口 {port} 的进程 (PID: {pid})", Colors.YELLOW)
+                time.sleep(0.5)
+            except Exception:
+                pass
+        return True
+    except Exception:
+        return False
+
 def wait_cdp_ready(timeout: float = 10.0) -> bool:
     """等待 Chrome CDP 就绪"""
     start = time.time()
@@ -129,16 +174,31 @@ def start_chrome(cdp_port: int) -> subprocess.Popen:
 def cleanup(signum=None, frame=None):
     """清理所有子进程"""
     log("正在停止所有服务...", Colors.YELLOW)
-    for p in processes:
-        try:
+    global processes
+
+    # Windows 特殊处理：强制杀掉所有子进程
+    if sys.platform == "win32":
+        for p in processes:
             if p.poll() is None:
-                p.terminate()
-                p.wait(timeout=5)
-        except:
+                try:
+                    subprocess.run(f'taskkill /F /T /PID {p.pid}', shell=True, capture_output=True, timeout=3)
+                except Exception:
+                    pass
+    else:
+        for p in processes:
             try:
-                p.kill()
+                if p.poll() is None:
+                    p.terminate()
+                    p.wait(timeout=5)
             except:
-                pass
+                try:
+                    p.kill()
+                except:
+                    pass
+
+    # 额外等待确保端口释放
+    time.sleep(1)
+
     log("已退出")
     sys.exit(0)
 
@@ -217,6 +277,25 @@ CDP_DEBUG_PORT=9222
 
         # ========== 2. 启动后端 ==========
         log("启动后端服务 (FastAPI)...")
+
+        # 检查端口是否被占用
+        if not check_port_available(BACKEND_HOST, args.port):
+            log(f"端口 {args.port} 被占用，正在尝试清理...", Colors.YELLOW)
+            if sys.platform == "win32":
+                if kill_process_on_port(args.port):
+                    time.sleep(1)
+                    if not check_port_available(BACKEND_HOST, args.port):
+                        log(f"端口 {args.port} 仍被占用，请手动检查", Colors.RED)
+                        log("提示：运行以下命令查看占用进程：", Colors.YELLOW)
+                        log(f'  netstat -ano | findstr ":{args.port}"', Colors.YELLOW)
+                        cleanup()
+                else:
+                    log(f"无法清理端口 {args.port}，请手动处理", Colors.RED)
+                    cleanup()
+            else:
+                log(f"端口 {args.port} 被占用，请先终止占用该端口的进程", Colors.RED)
+                log(f"提示：lsof -i :{args.port}", Colors.YELLOW)
+                cleanup()
 
         # 设置环境变量
         env = os.environ.copy()
