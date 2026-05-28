@@ -52,12 +52,11 @@ def start_chrome(cdp_port: int) -> subprocess.Popen:
     return proc
 
 
-def start_backend(host: str, port: int) -> subprocess.Popen:
+def start_backend(host: str, port: int, reload: bool = False) -> subprocess.Popen:
     """启动 FastAPI 后端."""
     env = os.environ.copy()
     env["CDP_ENABLED"] = "true"
     print(f"[server] 启动后端 http://{host}:{port}")
-    # 优先使用 uv run，回退到 python -m uvicorn
     uv_path = _find_uv()
     if uv_path:
         cmd = [
@@ -65,7 +64,6 @@ def start_backend(host: str, port: int) -> subprocess.Popen:
             "app.main:app",
             f"--host={host}",
             f"--port={port}",
-            "--reload",
         ]
     else:
         cmd = [
@@ -73,8 +71,9 @@ def start_backend(host: str, port: int) -> subprocess.Popen:
             "app.main:app",
             f"--host={host}",
             f"--port={port}",
-            "--reload",
         ]
+    if reload:
+        cmd.extend(["--reload", "--reload-dir", "app"])
     proc = subprocess.Popen(cmd, cwd=str(BACKEND_DIR), env=env)
     return proc
 
@@ -95,6 +94,7 @@ def main():
     parser.add_argument("--no-chrome", action="store_true", help="跳过启动 Chrome（CDP 已手动启动）")
     parser.add_argument("--api-mode", action="store_true", help="API 模式（不依赖 Chrome）")
     parser.add_argument("--port", type=int, default=BACKEND_PORT, help=f"后端端口 (默认 {BACKEND_PORT})")
+    parser.add_argument("--reload", action="store_true", help="启用热重载（仅监控 app/ 目录，排除 .db 文件）")
     args = parser.parse_args()
 
     chrome_proc = None
@@ -122,12 +122,16 @@ def main():
                 print(f"[server] [FAIL] 端口 {CDP_PORT} 未监听，请先启动 Chrome CDP")
                 sys.exit(1)
 
-        backend_proc = start_backend(BACKEND_HOST, args.port)
+        backend_proc = start_backend(BACKEND_HOST, args.port, reload=args.reload)
         print(f"\n[server] [OK] 后端已启动: http://{BACKEND_HOST}:{args.port}")
+        if args.reload:
+            print("[server] 热重载已启用（仅监控 app/ 目录）")
         print("[server] 按 Ctrl+C 停止\n")
 
-        # 等待后端进程
         backend_proc.wait()
+        exit_code = backend_proc.returncode
+        if exit_code != 0:
+            print(f"[server] [WARN] 后端进程异常退出 (exit_code={exit_code})")
 
     except KeyboardInterrupt:
         print("\n[server] 正在停止...")

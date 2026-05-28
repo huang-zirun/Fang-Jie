@@ -27,18 +27,22 @@ uv run python server.py
 
 `server.py` 同时启动后端（FastAPI + uvicorn）和前端（Vite），Ctrl+C 同时停止。
 
-后端启动参数：`--reload --reload-dir app --host 127.0.0.1 --port 9090`
+后端启动参数：`--host 127.0.0.1 --port 9090`
 
-> 注意：必须带 `--reload-dir app`，否则 Windows 上 `--reload` 监听整个 backend/ 目录（含 .venv）会触发 WinError 10013。
+> **注意**：默认不启用 `--reload`，因为 SQLite 数据库文件在工作目录中，频繁写入会触发 reload 导致服务不稳定。如需开发时热重载，使用 `--reload` 参数。
 
 ### 手动分步启动
 
 ```bash
-# 1. 启动后端
+# 1. 启动后端（生产模式，稳定运行）
+cd intent-money/backend
+uv run uvicorn app.main:app --host 127.0.0.1 --port 9090
+
+# 2. 启动后端（开发模式，带热重载）
 cd intent-money/backend
 uv run uvicorn app.main:app --reload --reload-dir app --host 127.0.0.1 --port 9090
 
-# 2. 启动前端
+# 3. 启动前端
 cd intent-money/frontend
 npm run dev
 ```

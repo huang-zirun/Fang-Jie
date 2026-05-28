@@ -19,6 +19,14 @@ from app.services.sentiment_service import analyze_comments_batch_async
 logger = logging.getLogger(__name__)
 
 
+async def _close_scraper(scraper) -> None:
+    if hasattr(scraper, "_browser") and hasattr(scraper._browser, "close"):
+        try:
+            await scraper._browser.close()
+        except Exception:
+            pass
+
+
 async def analyze_market_trend(db: AsyncSession, platform_id: uuid.UUID) -> dict:
     platform_result = await db.execute(select(Platform).where(Platform.id == platform_id))
     platform = platform_result.scalars().first()
@@ -181,15 +189,17 @@ async def update_market_scores(db: AsyncSession) -> int:
 
 
 async def scrape_and_save_xhs_notes(db: AsyncSession, keyword: str) -> int:
+    scraper = CdpXhsScraper() if settings.CDP_ENABLED else XhsScraper()
     try:
-        scraper = CdpXhsScraper() if settings.CDP_ENABLED else XhsScraper()
         notes = await scraper.search_hot_notes(keyword=keyword)
     except Exception as e:
         logger.error(f"XHS scrape failed for keyword '{keyword}': {e}")
+        await _close_scraper(scraper)
         return 0
 
     if not notes:
         logger.info(f"XHS scrape returned no results for keyword '{keyword}'")
+        await _close_scraper(scraper)
         return 0
 
     platform_result = await db.execute(
@@ -255,8 +265,10 @@ async def scrape_and_save_xhs_notes(db: AsyncSession, keyword: str) -> int:
     except Exception as e:
         logger.error(f"Failed to commit XHS notes: {e}")
         await db.rollback()
+        await _close_scraper(scraper)
         return 0
 
+    await _close_scraper(scraper)
     return saved_count
 
 
@@ -265,15 +277,17 @@ async def scrape_and_save_hot_videos(db: AsyncSession, platform_id: uuid.UUID, k
         logger.info("Scraper is disabled, skipping scrape_and_save_hot_videos")
         return 0
 
+    scraper = CdpDouyinScraper() if settings.CDP_ENABLED else douyin_scraper
     try:
-        scraper = CdpDouyinScraper() if settings.CDP_ENABLED else douyin_scraper
         videos = await scraper.search_hot_videos(keyword, limit=20)
     except Exception as e:
         logger.error(f"Scrape hot videos failed for keyword '{keyword}': {e}")
+        await _close_scraper(scraper)
         return 0
 
     if not videos:
         logger.info(f"No videos found for keyword '{keyword}'")
+        await _close_scraper(scraper)
         return 0
 
     saved_count = 0
@@ -338,7 +352,9 @@ async def scrape_and_save_hot_videos(db: AsyncSession, platform_id: uuid.UUID, k
     except Exception as e:
         logger.error(f"Failed to commit scraped hot videos: {e}")
         await db.rollback()
+        await _close_scraper(scraper)
         return 0
 
+    await _close_scraper(scraper)
     logger.info(f"Saved {saved_count} hot videos for keyword '{keyword}'")
     return saved_count

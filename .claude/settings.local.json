@@ -85,7 +85,10 @@
       "Bash(git -C \"E:/系统文件夹/Desktop/Channing/Fang-Jie\" remote -v)",
       "Bash(git -C \"E:/系统文件夹/Desktop/Channing/Fang-Jie\" diff --stat)",
       "Bash(git -C \"E:/系统文件夹/Desktop/Channing/Fang-Jie\" diff --cached --stat)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(sqlite3 intent_money.db \".schema market_hots\")",
+      "Bash(sqlite3 intent_money.db \"SELECT * FROM market_hots WHERE platform_id IN \\(SELECT id FROM platforms WHERE name LIKE '%小%'\\) LIMIT 5\")",
+      "Bash(CDP_ENABLED=false .venv/Scripts/uvicorn app.main:app --host 127.0.0.1 --port 9090)"
     ]
   }
 }
