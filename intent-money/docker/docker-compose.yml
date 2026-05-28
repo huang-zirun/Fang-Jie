@@ -5,15 +5,33 @@ services:
     env_file: ../backend/.env
     environment:
       DATABASE_URL: ${DATABASE_URL:-sqlite+aiosqlite:///./data/intent_money.db}
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_DAYS: ${ACCESS_TOKEN_EXPIRE_DAYS:-7}
       AI_API_KEY: ${AI_API_KEY}
       AI_BASE_URL: ${AI_BASE_URL:-https://openrouter.ai/api/v1}
       AI_MODEL: ${AI_MODEL:-deepseek/deepseek-chat-v3-0324:free}
-      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
-      ENV: ${ENV:-production}
+      XHS_COOKIE: ${XHS_COOKIE:-}
+      DOUYIN_COOKIE: ${DOUYIN_COOKIE:-}
+      SMS_ENABLED: ${SMS_ENABLED:-false}
+      SMS_GATEWAY: ${SMS_GATEWAY:-}
+      SMS_ACCESS_KEY: ${SMS_ACCESS_KEY:-}
+      SMS_SECRET_KEY: ${SMS_SECRET_KEY:-}
+      SMS_SIGN_NAME: ${SMS_SIGN_NAME:-}
+      SMS_TEMPLATE_CODE: ${SMS_TEMPLATE_CODE:-}
+      SCRAPER_ENABLED: ${SCRAPER_ENABLED:-true}
+      SCRAPER_TIMEOUT: ${SCRAPER_TIMEOUT:-30}
+      SENTIMENT_ENABLED: ${SENTIMENT_ENABLED:-true}
+      AUTO_PUBLISH_ENABLED: ${AUTO_PUBLISH_ENABLED:-false}
+      SOCIAL_AUTO_UPLOAD_PATH: ${SOCIAL_AUTO_UPLOAD_PATH:-}
+      COOKIE_DIR: ${COOKIE_DIR:-cookies}
+      COOKIE_EXPIRE_DAYS: ${COOKIE_EXPIRE_DAYS:-7}
       CDP_ENABLED: ${CDP_ENABLED:-false}
       CDP_DEBUG_HOST: ${CDP_DEBUG_HOST:-127.0.0.1}
       CDP_DEBUG_PORT: ${CDP_DEBUG_PORT:-9222}
       CDP_DEBUG_SCHEME: ${CDP_DEBUG_SCHEME:-http}
+      ENV: ${ENV:-production}
+      DEV_MODE: ${DEV_MODE:-false}
     volumes:
       - db_data:/app/data
     restart: unless-stopped
