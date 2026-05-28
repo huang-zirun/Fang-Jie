@@ -14,6 +14,7 @@ RUN uv sync --frozen --no-dev
 COPY . .
 
 RUN useradd -m appuser \
+    && mkdir -p /app/data \
     && chown -R appuser:appuser /app \
     && chmod +x entrypoint.sh
 
