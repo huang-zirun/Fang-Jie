@@ -2,7 +2,8 @@ services:
   backend:
     build:
       context: ../backend
-    env_file: ../backend/.env
+    env_file:
+      - ../backend/.env
     environment:
       DATABASE_URL: ${DATABASE_URL:-sqlite+aiosqlite:///app/data/intent_money.db}
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
