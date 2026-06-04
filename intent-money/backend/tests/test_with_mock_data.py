@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""测试带模拟数据的 CDP 驱动内容生成"""
+"""测试带模拟数据的内容生成"""
 import asyncio
 import sys
 import uuid

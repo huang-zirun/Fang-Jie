@@ -10,8 +10,8 @@ print("=" * 60)
 try:
     resp = requests.get(f"{BASE_URL}/scraper/health", timeout=5)
     data = resp.json()
-    print(f"抖音: healthy={data['douyin']['healthy']}, cdp={data['douyin']['cdp']}")
-    print(f"小红书: healthy={data['xhs']['healthy']}, cdp={data['xhs']['cdp']}")
+    print(f"抖音: healthy={data['douyin']['healthy']}")
+    print(f"小红书: healthy={data['xhs']['healthy']}")
 except Exception as e:
     print(f"Error: {e}")
 
