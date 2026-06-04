@@ -26,10 +26,6 @@ services:
       SOCIAL_AUTO_UPLOAD_PATH: ${SOCIAL_AUTO_UPLOAD_PATH:-}
       COOKIE_DIR: ${COOKIE_DIR:-cookies}
       COOKIE_EXPIRE_DAYS: ${COOKIE_EXPIRE_DAYS:-7}
-      CDP_ENABLED: ${CDP_ENABLED:-false}
-      CDP_DEBUG_HOST: ${CDP_DEBUG_HOST:-127.0.0.1}
-      CDP_DEBUG_PORT: ${CDP_DEBUG_PORT:-9222}
-      CDP_DEBUG_SCHEME: ${CDP_DEBUG_SCHEME:-http}
       ENV: ${ENV:-production}
       DEV_MODE: ${DEV_MODE:-false}
     volumes:

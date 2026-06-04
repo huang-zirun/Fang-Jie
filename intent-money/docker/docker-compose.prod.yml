@@ -8,7 +8,6 @@ services:
       DATABASE_URL: sqlite+aiosqlite:////app/data/intent_money.db
       ENV: production
       DEV_MODE: "false"
-      CDP_ENABLED: "false"
     volumes:
       - db_data:/app/data
     restart: unless-stopped

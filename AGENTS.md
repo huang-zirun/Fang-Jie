@@ -1,13 +1,16 @@
 # Agent Rules
 
 ## Python (UV)
+
 - Deps: `uv sync`, `uv add/rm <pkg>`
 - Run: `uv run python <script>`
 
 ## Shell
+
 - Use **PowerShell**
 
 ## Commits
+
 - Format: `<type>(<scope>): <subject>`
 - Types: feat, fix, docs, style, refactor, perf, test, chore, ci, revert
 - Example: `feat(auth): add login endpoint`
@@ -15,6 +18,7 @@
 ## Intent Money OS - 技术栈快照
 
 ### 当前配置（2026-05-20 更新）
+
 - **数据库**: SQLite（aiosqlite 异步驱动，替代 PostgreSQL）
   - 文件: `intent_money.db`（位于 backend 目录下）
   - Alembic 迁移已启用 `render_as_batch=True` 兼容 SQLite

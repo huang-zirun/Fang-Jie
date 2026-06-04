@@ -127,133 +127,7 @@ curl http://localhost/api/v1/auth/login
 
 ---
 
-## 3. CDP 连接配置
-
-CDP（Chrome DevTools Protocol）用于让后端控制本地 Chrome 浏览器，实现自动化操作（如发布内容到平台）。
-
-### 3.1 本地 Chrome 启动
-
-**Windows（PowerShell）：**
-
-```powershell
-.\scripts\start-chrome.ps1
-```
-
-**macOS / Linux：**
-
-```bash
-bash scripts/start-chrome.sh
-```
-
-脚本会以 `--remote-debugging-port=9222` 参数启动 Chrome，并使用独立的用户数据目录 `~/.intent-money/chrome-user-data`。
-
-启动后访问 http://localhost:9222 可看到 Chrome 的调试页面。
-
-### 3.2 内网穿透配置
-
-由于后端运行在服务器上，Chrome 运行在本地，需要通过内网穿透将本地 9222 端口暴露给服务器。
-
-#### 方案 A：frp
-
-1. **服务端**（与 Intent Money OS 同一台服务器）：
-
-   下载 frp 并编辑 `frps.toml`：
-
-   ```toml
-   bindPort = 7000
-   auth.token = "your-frp-token"
-   ```
-
-   启动：
-
-   ```bash
-   ./frps -c frps.toml
-   ```
-
-2. **客户端**（本地机器）：
-
-   下载 frp 并编辑 `frpc.toml`：
-
-   ```toml
-   serverAddr = "<服务器IP>"
-   serverPort = 7000
-   auth.token = "your-frp-token"
-
-   [[proxies]]
-   name = "cdp"
-   type = "tcp"
-   localIP = "127.0.0.1"
-   localPort = 9222
-   remotePort = 9222
-   ```
-
-   启动：
-
-   ```bash
-   ./frpc -c frpc.toml
-   ```
-
-3. 服务器上通过 `127.0.0.1:9222` 即可访问本地 Chrome。
-
-#### 方案 B：cloudflared
-
-1. **本地机器**安装 cloudflared：
-
-   ```bash
-   # macOS
-   brew install cloudflared
-
-   # Windows
-   winget install Cloudflare.cloudflared
-   ```
-
-2. 建立隧道：
-
-   ```bash
-   cloudflared tunnel --url http://localhost:9222
-   ```
-
-3. 命令行会输出一个 `https://xxx.trycloudflare.com` 地址，将其作为 `CDP_DEBUG_HOST`。
-
-### 3.3 配置 CDP_DEBUG_HOST 环境变量
-
-编辑 `backend/.env`：
-
-**frp 方案：**
-
-```env
-CDP_ENABLED=true
-CDP_DEBUG_HOST=127.0.0.1
-CDP_DEBUG_PORT=9222
-```
-
-**cloudflared 方案：**
-
-```env
-CDP_ENABLED=true
-CDP_DEBUG_HOST=xxx.trycloudflare.com
-CDP_DEBUG_PORT=443
-CDP_DEBUG_SCHEME=https
-```
-
-修改后重启后端：
-
-```bash
-cd docker
-docker compose restart backend
-```
-
-### 3.4 验证 CDP 连接
-
-```bash
-curl http://localhost/api/v1/cdp/health
-```
-
-返回正常状态即表示连接成功。
-
----
-
-## 4. 环境变量说明
+## 3. 环境变量说明
 
 | 变量                     | 默认值                                        | 说明                          |
 |------------------------|--------------------------------------------|-----------------------------|
@@ -279,16 +153,12 @@ curl http://localhost/api/v1/cdp/health
 | `SOCIAL_AUTO_UPLOAD_PATH` | —                                          | social-auto-upload 模块路径（可选） |
 | `COOKIE_DIR`           | `cookies`                                  | Cookie 存储目录                  |
 | `COOKIE_EXPIRE_DAYS`   | `7`                                        | Cookie 过期天数                  |
-| `CDP_ENABLED`          | `false`                                    | 是否启用 CDP 浏览器控制               |
-| `CDP_DEBUG_HOST`       | `127.0.0.1`                                | CDP 调试地址                     |
-| `CDP_DEBUG_PORT`       | `9222`                                     | CDP 调试端口                     |
-| `CDP_DEBUG_SCHEME`     | `http`                                     | CDP 连接协议（`http` 或 `https`，cloudflared 穿透用 `https`） |
 | `DEV_MODE`             | `false`                                    | 开发模式开关，开启后无限换条               |
 | `ENV`                  | `development`                              | 运行环境：`development` 或 `production` |
 
 ---
 
-## 5. 常见问题排查
+## 4. 常见问题排查
 
 ### 容器启动失败
 
@@ -310,31 +180,6 @@ docker compose ps -a
 - 端口被占用：`80` 端口已被其他程序占用，使用 `sudo lsof -i :80` 检查。
 - `.env` 文件缺失：确认 `backend/.env` 存在且格式正确。
 - 构建失败：检查网络连接，确保能拉取 Docker 基础镜像和 pip/npm 依赖。
-
-### CDP 连接失败
-
-**症状：** `/api/v1/cdp/health` 返回错误或超时。
-
-**排查步骤：**
-
-1. 确认本地 Chrome 已启动并开启调试端口：
-   ```bash
-   # 本地机器
-   curl http://localhost:9222/json/version
-   ```
-
-2. 确认内网穿透正常：
-   ```bash
-   # 服务器上测试
-   curl http://<CDP_DEBUG_HOST>:<CDP_DEBUG_PORT>/json/version
-   ```
-
-3. 确认 `.env` 中 `CDP_ENABLED=true` 且 `CDP_DEBUG_HOST` / `CDP_DEBUG_PORT` 配置正确。
-
-4. 重启后端使配置生效：
-   ```bash
-   docker compose restart backend
-   ```
 
 ### 前端页面空白
 
