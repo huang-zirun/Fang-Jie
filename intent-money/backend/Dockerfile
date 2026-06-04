@@ -20,7 +20,8 @@ RUN useradd -m appuser \
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=15s --timeout=10s --start-period=30s --retries=5 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
 
-ENTRYPOINT ["/bin/sh", "-c", "chown -R appuser:appuser /app/data && su appuser -c './entrypoint.sh'"]
+# 以 root 启动，确保 /app/data 权限正确后切换到 appuser
+ENTRYPOINT ["/bin/sh", "-c", "mkdir -p /app/data && chown -R appuser:appuser /app/data && exec su appuser -c './entrypoint.sh'"]

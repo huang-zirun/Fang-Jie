@@ -8,15 +8,18 @@ services:
       DATABASE_URL: sqlite+aiosqlite:////app/data/intent_money.db
       ENV: production
       DEV_MODE: "false"
+      SCRAPER_ENABLED: "false"
+      AUTO_PUBLISH_ENABLED: "false"
+      SOCIAL_AUTO_UPLOAD_PATH: ""
     volumes:
       - db_data:/app/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
-      interval: 30s
+      interval: 15s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 60s
 
   nginx:
     build:
