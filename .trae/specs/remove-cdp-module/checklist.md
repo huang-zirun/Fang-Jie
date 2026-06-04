@@ -1,0 +1,19 @@
+- [x] CDP 核心模块文件已全部删除（cdp_browser.py, cdp_qrcode_login.py, cdp_publisher.py, cdp_xhs_scraper.py, cdp_douyin_scraper.py, cdp.py）
+- [x] CDP 脚本和测试文件已全部删除（start-chrome.sh, start-chrome.ps1, frpc.ini, test_cdp.py, test_cdp_content_generation.py）
+- [x] config.py 中 CDP 配置项已移除（CDP_ENABLED, CDP_DEBUG_HOST, CDP_DEBUG_PORT, CDP_DEBUG_SCHEME）
+- [x] router.py 中 cdp_router 注册已移除
+- [x] accounts.py 扫码登录直接走 Playwright，无 CDP 降级逻辑
+- [x] scraper.py / scraper_xhs.py 无 CDP 爬虫选择逻辑
+- [x] snapshots.py 中 CDP fetch 端点已移除
+- [x] auto_publisher.py 中 CDP 发布路径已移除，仅保留 sau CLI
+- [x] per_user_scraper.py 中 CDP 共享爬虫创建已移除
+- [x] market_service.py 中 CDP 爬虫引用已移除
+- [x] snapshot_scheduler.py 中 CDP 浏览器数据抓取已移除
+- [x] platform_scraper/__init__.py 中 CDP 导出已移除
+- [x] server.py（两处）中 Chrome CDP 启动逻辑已移除
+- [x] docker-compose.yml 中 CDP 环境变量已移除
+- [x] pyproject.toml 中 websockets 依赖已移除
+- [x] deploy.md 中 CDP 连接配置章节已移除
+- [x] journey/design.md 中 CDP 相关架构描述已更新
+- [x] AGENTS.md 中 CDP 技术栈描述已更新
+- [x] ruff check 无 CDP 相关 import 错误

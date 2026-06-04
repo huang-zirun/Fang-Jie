@@ -1,0 +1,44 @@
+# Tasks
+
+- [x] Task 1: 删除 CDP 核心模块文件
+  - [x] 删除 `backend/app/services/cdp_qrcode_login.py`
+  - [x] 删除 `backend/app/services/cdp_publisher.py`
+  - [x] 删除 `backend/app/services/platform_scraper/cdp_browser.py`
+  - [x] 删除 `backend/app/services/platform_scraper/cdp_xhs_scraper.py`
+  - [x] 删除 `backend/app/services/platform_scraper/cdp_douyin_scraper.py`
+  - [x] 删除 `backend/app/api/v1/cdp.py`
+- [x] Task 2: 删除 CDP 脚本和测试文件
+  - [x] 删除 `scripts/start-chrome.sh`
+  - [x] 删除 `scripts/start-chrome.ps1`
+  - [x] 删除 `scripts/frpc.ini`
+  - [x] 删除 `backend/tests/test_cdp.py`
+  - [x] 删除 `backend/tests/test_cdp_content_generation.py`
+- [x] Task 3: 修改后端核心文件 - 移除 CDP 引用
+  - [x] 修改 `config.py`：移除 CDP_ENABLED / CDP_DEBUG_HOST / CDP_DEBUG_PORT / CDP_DEBUG_SCHEME
+  - [x] 修改 `api/v1/router.py`：移除 cdp_router 注册
+  - [x] 修改 `api/v1/accounts.py`：扫码登录直接走 Playwright，移除 CDP 降级逻辑
+  - [x] 修改 `api/v1/scraper.py`：移除 CDP 爬虫选择，统一使用 Playwright/API 爬虫
+  - [x] 修改 `api/v1/scraper_xhs.py`：移除 CDP 爬虫选择
+  - [x] 修改 `api/v1/snapshots.py`：移除 CDP fetch 端点
+  - [x] 修改 `services/auto_publisher.py`：移除 CDP 发布路径，仅保留 sau CLI
+  - [x] 修改 `services/per_user_scraper.py`：移除 CDP 共享爬虫创建
+  - [x] 修改 `services/market_service.py`：移除 CDP 爬虫引用
+  - [x] 修改 `services/snapshot_scheduler.py`：移除 CDP 浏览器数据抓取
+  - [x] 修改 `services/platform_scraper/__init__.py`：移除 CDP 导出
+- [x] Task 4: 修改启动脚本和配置文件
+  - [x] 修改 `backend/server.py`：移除 Chrome CDP 启动逻辑
+  - [x] 修改 `server.py`（根目录）：移除 Chrome CDP 启动逻辑
+  - [x] 修改 `docker/docker-compose.yml`：移除 CDP 环境变量
+  - [x] 修改 `pyproject.toml`：移除 websockets 依赖
+- [x] Task 5: 更新文档和 journey 系统
+  - [x] 修改 `docs/deploy.md`：移除 CDP 连接配置章节
+  - [x] 修改 `journey/design.md`：移除 CDP 相关架构描述
+  - [x] 修改 `AGENTS.md`：移除 CDP 技术栈描述
+- [x] Task 6: 验证 - 运行 lint 和类型检查
+  - [x] 运行 `uv run ruff check app/` 确保无 import 错误
+
+# Task Dependencies
+- Task 3 depends on Task 1（删除文件后才能修改引用）
+- Task 4 depends on Task 1
+- Task 5 depends on Task 3, Task 4
+- Task 6 depends on Task 3, Task 4, Task 5
