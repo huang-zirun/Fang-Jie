@@ -44,7 +44,7 @@
             </svg>
           </div>
           <div class="generating-text">AI 正在匹配最优内容结构...</div>
-          <div class="generating-sub">分析实时爆款数据 · 生成专属方案</div>
+          <div class="generating-sub">{{ generatingSubText }}</div>
         </div>
       </div>
     </Transition>
@@ -70,6 +70,7 @@ const route = useRoute()
 const intentId = route.params.intentId as string
 const platforms = ref<Platform[]>([])
 const generating = ref(false)
+const generatingSubText = ref('分析实时爆款数据 · 生成专属方案')
 
 const getPlatformColor = (name: string): string => {
   if (name === '抖音' || name === 'douyin') return '#ff006e'
@@ -91,8 +92,57 @@ onMounted(async () => {
   }
 })
 
+// 辅助函数：延迟等待
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+// 辅助函数：触发扩展抓取（fire-and-forget，不等待结果）
+function triggerExtensionScrape(platformId: string, keyword: string = '袜子') {
+  window.postMessage({
+    type: 'INTENT_MONEY_TRIGGER_SCRAPE',
+    requestId: `scrape_${Date.now()}`,
+    payload: {
+      keyword: keyword,
+      platform_id: platformId,
+      limit: 20
+    }
+  }, '*')
+}
+
+// 辅助函数：快速检查扩展是否在线（1秒超时）
+function checkExtensionOnline(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const requestId = `ping_${Date.now()}`
+    const timeout = setTimeout(() => {
+      window.removeEventListener('message', handler)
+      resolve(false)
+    }, 1000)
+
+    function handler(event: MessageEvent) {
+      if (event.data?.type === 'INTENT_MONEY_PONG' && event.data?.requestId === requestId) {
+        clearTimeout(timeout)
+        window.removeEventListener('message', handler)
+        resolve(true)
+      }
+    }
+    window.addEventListener('message', handler)
+    window.postMessage({ type: 'INTENT_MONEY_PING', requestId }, '*')
+  })
+}
+
 const selectPlatform = async (platform: Platform) => {
   generating.value = true
+
+  // Step 1: 如果扩展在线且选择的是抖音平台，先触发扩展抓取最新数据
+  const isDouyin = platform.name === '抖音' || platform.name === 'douyin'
+  if (isDouyin) {
+    const extensionOnline = await checkExtensionOnline()
+    if (extensionOnline) {
+      triggerExtensionScrape(platform.id)
+      // 等待扩展完成抓取并提交数据到后端
+      await delay(5000)
+    }
+  }
+
   try {
     const res = await createTask({
       intent_id: intentId,

@@ -65,6 +65,13 @@
         </svg>
         <span>查看历史任务</span>
       </div>
+      <div class="account-link" @click="router.push('/accounts')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        <span>账号管理</span>
+      </div>
       <div class="admin-link" @click="router.push('/admin')">运营后台</div>
     </div>
 
@@ -338,6 +345,23 @@ const dismissFeedback = () => {
 
 .history-link:hover svg {
   transform: rotate(30deg);
+}
+
+.account-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  color: var(--ink-gray);
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: var(--radius-button);
+  transition: all 0.2s ease;
+}
+
+.account-link:hover {
+  color: var(--neon-cyan);
+  background: rgba(0, 245, 212, 0.08);
 }
 
 .admin-link {

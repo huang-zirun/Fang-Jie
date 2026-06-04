@@ -5,6 +5,7 @@ import TaskDetail from '../views/TaskDetail.vue'
 import DataReport from '../views/DataReport.vue'
 import TaskHistory from '../views/TaskHistory.vue'
 import Admin from '../views/Admin.vue'
+import AccountManage from '../views/AccountManage.vue'
 import { useUserStore } from '../stores/user'
 import { anonymousRegister } from '../api/auth'
 
@@ -17,6 +18,7 @@ const router = createRouter({
     { path: '/report/:id', component: DataReport },
     { path: '/history', component: TaskHistory },
     { path: '/admin', component: Admin },
+    { path: '/accounts', component: AccountManage },
   ],
 })
 
