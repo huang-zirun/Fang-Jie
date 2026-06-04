@@ -33,7 +33,7 @@ class SnapshotOut(BaseModel):
     source: str = "manual"
     snapshot_at: datetime
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "extra": "ignore"}
 
 
 class DeployDateUpdate(BaseModel):
@@ -47,4 +47,4 @@ class SnapshotSummaryOut(BaseModel):
     latest_play_count: int
     avg_daily_play_growth: float
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "extra": "ignore"}

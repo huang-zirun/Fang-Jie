@@ -46,7 +46,7 @@ class TaskOut(BaseModel):
     latest_snapshot: dict | None = None
     snapshot_count: int = 0
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "extra": "ignore"}
 
 
 class TaskHistoryOut(BaseModel):
@@ -67,7 +67,7 @@ class TaskHistoryOut(BaseModel):
     message_count: int | None = None
     snapshot_count: int = 0
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "extra": "ignore"}
 
 
 class IntentDistributionItem(BaseModel):

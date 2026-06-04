@@ -33,7 +33,7 @@ class DiagnosisOut(BaseModel):
     play_trend: str | None = None
     avg_daily_play_growth: float = 0.0
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "extra": "ignore"}
 
 
 class ReportResponse(BaseModel):

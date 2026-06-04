@@ -12,6 +12,7 @@ from app.models.platform import Platform
 from app.models.session import UserSession
 from app.models.user import User
 from app.models.user_event import UserEvent
+from app.models.user_platform_account import UserPlatformAccount
 
 __all__ = [
     "User",
@@ -28,4 +29,5 @@ __all__ = [
     "OptimizationRule",
     "MarketHot",
     "ExtractedStructure",
+    "UserPlatformAccount",
 ]

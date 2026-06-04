@@ -25,12 +25,8 @@ class Settings(BaseSettings):
     SOCIAL_AUTO_UPLOAD_PATH: str = ""
     COOKIE_DIR: str = "cookies"
     COOKIE_EXPIRE_DAYS: int = 7
-
-    # CDP (Chrome DevTools Protocol) settings
-    CDP_ENABLED: bool = False
-    CDP_DEBUG_HOST: str = "127.0.0.1"
-    CDP_DEBUG_PORT: int = 9222
-    CDP_DEBUG_SCHEME: str = "http"
+    COOKIE_ENCRYPTION_KEY: str = ""
+    PER_USER_SCRAPING: bool = True
 
     # Development mode settings
     DEV_MODE: bool = False  # 开发模式开关，开启后无限换条

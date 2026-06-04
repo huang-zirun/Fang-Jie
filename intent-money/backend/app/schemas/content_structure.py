@@ -30,7 +30,7 @@ class ContentStructureOut(BaseModel):
     is_active: bool
     created_at: datetime
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "extra": "ignore"}
 
 
 class ContentStructureUpdate(BaseModel):

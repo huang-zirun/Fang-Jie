@@ -1068,7 +1068,7 @@ async def seed_all():
         await seed_optimization_rules(db)
         await seed_content_structures(db)
         await seed_conversion_paths(db)
-    print("Seed data created successfully")
+    print("种子数据初始化完成")
 
 
 if __name__ == "__main__":

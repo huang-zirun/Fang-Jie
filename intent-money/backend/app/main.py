@@ -5,6 +5,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# 抑制第三方库的冗长英文日志
+logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+
 from app.api.v1.router import router as v1_router
 from app.database import async_session_factory, engine, Base
 from app.models import ExtractedStructure  # noqa: F401
@@ -21,7 +25,7 @@ async def daily_market_analysis():
         try:
             await asyncio.sleep(86400)
         except asyncio.CancelledError:
-            logger.info("daily_market_analysis cancelled, exiting")
+            logger.info("每日市场分析已取消")
             return
         try:
             async with async_session_factory() as db:
@@ -29,10 +33,10 @@ async def daily_market_analysis():
                 for platform_id in [PLATFORM_ID_DOUYIN, PLATFORM_ID_XIAOHONGSHU]:
                     await analyze_market_trend(db, platform_id)
         except asyncio.CancelledError:
-            logger.info("daily_market_analysis cancelled during work, exiting")
+            logger.info("每日市场分析已取消")
             return
         except Exception as e:
-            logger.error(f"Market analysis failed: {e}")
+            logger.error(f"市场分析失败: {e}")
 
 
 async def daily_scrape_hot_videos():
@@ -40,19 +44,60 @@ async def daily_scrape_hot_videos():
         try:
             await asyncio.sleep(86400)
         except asyncio.CancelledError:
-            logger.info("daily_scrape_hot_videos cancelled, exiting")
+            logger.info("每日热门抓取已取消")
             return
         try:
             async with async_session_factory() as db:
-                from app.services.market_service import scrape_and_save_hot_videos
+                from app.services.market_service import scrape_and_save_hot_videos, scrape_via_extension
                 keywords = ["袜子", "好物推荐", "穿搭", "生活好物"]
+
+                # 优先尝试扩展抓取路径（需要前端配合）
+                ext_result = await scrape_via_extension(db, PLATFORM_ID_DOUYIN, keywords)
+                logger.info(f"扩展抓取: {ext_result['message']}")
+
+                # 同时尝试后端 API 爬虫作为降级
                 for keyword in keywords:
-                    await scrape_and_save_hot_videos(db, PLATFORM_ID_DOUYIN, keyword)
+                    saved = await scrape_and_save_hot_videos(db, PLATFORM_ID_DOUYIN, keyword)
+                    if saved > 0:
+                        logger.info(f"后端爬虫保存{saved}条'{keyword}'视频")
+                    else:
+                        logger.warning(f"后端爬虫未获取到'{keyword}'视频")
         except asyncio.CancelledError:
-            logger.info("daily_scrape_hot_videos cancelled during work, exiting")
+            logger.info("每日热门抓取已取消")
             return
         except Exception as e:
-            logger.error(f"Daily scrape hot videos failed: {e}")
+            logger.error(f"每日热门抓取失败: {e}")
+
+
+async def extension_scrape_reminder():
+    """定期提醒扩展抓取路径可用"""
+    while True:
+        try:
+            await asyncio.sleep(21600)  # 6 hours
+        except asyncio.CancelledError:
+            logger.info("扩展抓取提醒已取消")
+            return
+        try:
+            async with async_session_factory() as db:
+                from sqlalchemy import func, select
+                from app.models.market_hot import MarketHot
+                # 检查是否有扩展提交的数据
+                ext_count = await db.execute(
+                    select(func.count()).select_from(MarketHot).where(
+                        MarketHot.hot_type == "extension_scraped",
+                        MarketHot.is_active.is_(True),
+                    )
+                )
+                count = ext_count.scalar() or 0
+                if count == 0:
+                    logger.info("无扩展抓取数据，可通过浏览器扩展触发")
+                else:
+                    logger.info(f"发现{count}条扩展抓取数据")
+        except asyncio.CancelledError:
+            logger.info("扩展抓取提醒已取消")
+            return
+        except Exception as e:
+            logger.error(f"扩展抓取提醒失败: {e}")
 
 
 async def weekly_evolution():
@@ -60,18 +105,18 @@ async def weekly_evolution():
         try:
             await asyncio.sleep(604800)
         except asyncio.CancelledError:
-            logger.info("weekly_evolution cancelled, exiting")
+            logger.info("每周进化已取消")
             return
         try:
             async with async_session_factory() as db:
                 from app.services.evolution_service import adjust_rule_weights
                 result = await adjust_rule_weights(db)
-                logger.info(f"Weekly evolution: {result}")
+                logger.info(f"每周进化: {result}")
         except asyncio.CancelledError:
-            logger.info("weekly_evolution cancelled during work, exiting")
+            logger.info("每周进化已取消")
             return
         except Exception as e:
-            logger.error(f"Evolution failed: {e}")
+            logger.error(f"进化失败: {e}")
 
 
 async def periodic_snapshot_fetch():
@@ -79,16 +124,35 @@ async def periodic_snapshot_fetch():
         try:
             await asyncio.sleep(7200)
         except asyncio.CancelledError:
-            logger.info("periodic_snapshot_fetch cancelled, exiting")
+            logger.info("定期快照已取消")
             return
         try:
             from app.services.snapshot_scheduler import scheduled_snapshot_fetch
             await scheduled_snapshot_fetch()
         except asyncio.CancelledError:
-            logger.info("periodic_snapshot_fetch cancelled during work, exiting")
+            logger.info("定期快照已取消")
             return
         except Exception as e:
-            logger.error(f"Periodic snapshot fetch failed: {e}")
+            logger.error(f"定期快照失败: {e}")
+
+
+async def daily_cookie_validation():
+    while True:
+        try:
+            await asyncio.sleep(86400)
+        except asyncio.CancelledError:
+            logger.info("每日Cookie校验已取消")
+            return
+        try:
+            async with async_session_factory() as db:
+                from app.services.cookie_lifecycle import validate_all_cookies
+                count = await validate_all_cookies(db)
+                logger.info(f"每日Cookie校验: 检查{count}个Cookie")
+        except asyncio.CancelledError:
+            logger.info("每日Cookie校验已取消")
+            return
+        except Exception as e:
+            logger.error(f"每日Cookie校验失败: {e}")
 
 
 @asynccontextmanager
@@ -101,8 +165,10 @@ async def lifespan(app: FastAPI):
     _background_tasks.append(asyncio.create_task(daily_scrape_hot_videos()))
     _background_tasks.append(asyncio.create_task(weekly_evolution()))
     _background_tasks.append(asyncio.create_task(periodic_snapshot_fetch()))
+    _background_tasks.append(asyncio.create_task(daily_cookie_validation()))
+    _background_tasks.append(asyncio.create_task(extension_scrape_reminder()))
 
-    logger.info("All background tasks started")
+    logger.info("后台任务已全部启动")
 
     yield
 
@@ -111,9 +177,9 @@ async def lifespan(app: FastAPI):
     results = await asyncio.gather(*_background_tasks, return_exceptions=True)
     for task, result in zip(_background_tasks, results):
         if isinstance(result, Exception) and not isinstance(result, asyncio.CancelledError):
-            logger.error(f"Background task exited with error: {result}")
+            logger.error(f"后台任务异常退出: {result}")
     _background_tasks.clear()
-    logger.info("All background tasks cancelled")
+    logger.info("后台任务已全部取消")
 
 
 app = FastAPI(title="Intent Money OS", version="0.1.0", lifespan=lifespan)

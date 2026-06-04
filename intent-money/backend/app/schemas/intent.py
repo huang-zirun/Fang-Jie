@@ -10,4 +10,4 @@ class IntentOut(BaseModel):
     is_active: bool
     sort_order: int
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "extra": "ignore"}

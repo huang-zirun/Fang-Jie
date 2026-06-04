@@ -23,3 +23,4 @@ class User(Base):
 
     tasks = relationship("ContentTask", back_populates="user")
     sessions = relationship("UserSession", back_populates="user")
+    platform_accounts = relationship("UserPlatformAccount", back_populates="user", cascade="all, delete-orphan")
