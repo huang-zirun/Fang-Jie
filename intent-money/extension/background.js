@@ -11,7 +11,7 @@ const PLATFORM_CONFIG = {
   }
 };
 
-const DEFAULT_SERVER_URL = "http://127.0.0.1:9090";
+const DEFAULT_SERVER_URL = "https://trades.zzy88.com";
 
 // XHS intercepted data cache
 const xhsInterceptedCache = {};
@@ -54,7 +54,7 @@ async function syncCookiesToBackend(platform, cookies) {
 async function broadcastStatusToTabs(platform, loggedIn, cookieCount) {
   try {
     const tabs = await chrome.tabs.query({
-      url: ["http://localhost:*/*", "http://127.0.0.1:*/*"]
+      url: ["http://localhost:*/*", "http://127.0.0.1:*/*", "https://trades.zzy88.com/*"]
     });
     const timestamp = Date.now();
     for (const tab of tabs) {
