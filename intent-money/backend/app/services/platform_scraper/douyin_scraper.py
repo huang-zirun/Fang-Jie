@@ -49,13 +49,13 @@ class DouyinScraper(BasePlatformScraper):
 
             return results
         except httpx.HTTPStatusError as e:
-            logger.error(f"Douyin search HTTP error: {e.response.status_code}")
+            logger.error(f"抖音搜索HTTP错误: {e.response.status_code}")
             return []
         except httpx.RequestError as e:
-            logger.error(f"Douyin search request error: {e}")
+            logger.error(f"抖音搜索请求异常: {e}")
             return []
         except Exception as e:
-            logger.error(f"Douyin search unexpected error: {e}")
+            logger.error(f"抖音搜索未知错误: {e}")
             return []
 
     async def get_video_detail(self, video_id: str) -> dict[str, Any] | None:
@@ -69,13 +69,13 @@ class DouyinScraper(BasePlatformScraper):
             aweme_detail = data.get("aweme_detail", data)
             return self._parse_video_item(aweme_detail)
         except httpx.HTTPStatusError as e:
-            logger.error(f"Douyin video detail HTTP error: {e.response.status_code}")
+            logger.error(f"抖音视频详情HTTP错误: {e.response.status_code}")
             return None
         except httpx.RequestError as e:
-            logger.error(f"Douyin video detail request error: {e}")
+            logger.error(f"抖音视频详情请求异常: {e}")
             return None
         except Exception as e:
-            logger.error(f"Douyin video detail unexpected error: {e}")
+            logger.error(f"抖音视频详情未知错误: {e}")
             return None
 
     async def get_video_comments(self, video_id: str, limit: int = 50) -> list[dict[str, Any]]:
@@ -102,25 +102,25 @@ class DouyinScraper(BasePlatformScraper):
 
             return results
         except httpx.HTTPStatusError as e:
-            logger.error(f"Douyin comments HTTP error: {e.response.status_code}")
+            logger.error(f"抖音评论HTTP错误: {e.response.status_code}")
             return []
         except httpx.RequestError as e:
-            logger.error(f"Douyin comments request error: {e}")
+            logger.error(f"抖音评论请求异常: {e}")
             return []
         except Exception as e:
-            logger.error(f"Douyin comments unexpected error: {e}")
+            logger.error(f"抖音评论未知错误: {e}")
             return []
 
     async def search_hot_notes(self, keyword: str, limit: int = 20) -> list[dict[str, Any]]:
-        logger.warning("DouyinScraper does not support note search, returning empty list")
+        logger.warning("抖音爬虫不支持笔记搜索")
         return []
 
     async def get_note_detail(self, note_id: str) -> dict[str, Any] | None:
-        logger.warning("DouyinScraper does not support note detail, returning None")
+        logger.warning("抖音爬虫不支持笔记详情")
         return None
 
     async def get_note_comments(self, note_id: str, limit: int = 50) -> list[dict[str, Any]]:
-        logger.warning("DouyinScraper does not support note comments, returning empty list")
+        logger.warning("抖音爬虫不支持笔记评论")
         return []
 
     async def check_health(self) -> bool:
@@ -177,7 +177,7 @@ class DouyinScraper(BasePlatformScraper):
                 "share_url": item.get("share_url", ""),
             }
         except Exception as e:
-            logger.error(f"Douyin parse video item error: {e}")
+            logger.error(f"抖音解析视频项失败: {e}")
             return None
 
     def _parse_comment_item(self, item: dict[str, Any]) -> dict[str, Any] | None:
@@ -198,7 +198,7 @@ class DouyinScraper(BasePlatformScraper):
                 "created_at": item.get("create_time", 0),
             }
         except Exception as e:
-            logger.error(f"Douyin parse comment item error: {e}")
+            logger.error(f"抖音解析评论项失败: {e}")
             return None
 
 

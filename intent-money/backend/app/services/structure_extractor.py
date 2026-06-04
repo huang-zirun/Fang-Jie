@@ -58,7 +58,7 @@ async def _fetch_content_metadata(url: str, platform: str) -> dict | None:
                     }
             return None
     except Exception as e:
-        logger.error(f"Failed to fetch content metadata from {url}: {e}")
+        logger.error(f"获取内容元数据失败({url}): {e}")
         return None
 
     return None
@@ -129,7 +129,7 @@ async def extract_structure_from_url(url: str, platform: str) -> dict | None:
         metadata = await _fetch_content_metadata(url, platform)
 
         if not settings.AI_API_KEY:
-            logger.warning("AI_API_KEY not set, returning default extraction")
+            logger.warning("AI密钥未配置，返回默认提取")
             return _default_extraction()
 
         prompt = _build_extraction_prompt(platform_name, url, metadata)
@@ -158,7 +158,7 @@ async def extract_structure_from_url(url: str, platform: str) -> dict | None:
                 data = json.loads(text.strip())
 
                 if not isinstance(data, dict) or "hook_type" not in data:
-                    logger.warning(f"AI output invalid structure (attempt {attempt + 1})")
+                    logger.warning(f"AI输出结构无效(第{attempt + 1}次)")
                     if attempt == 0:
                         continue
                     return _default_extraction()
@@ -168,21 +168,21 @@ async def extract_structure_from_url(url: str, platform: str) -> dict | None:
                 return data
 
             except APITimeoutError:
-                logger.warning(f"AI timeout (attempt {attempt + 1})")
+                logger.warning(f"AI超时(第{attempt + 1}次)")
                 if attempt == 0:
                     continue
             except APIError as e:
-                logger.error(f"AI API error: {e}")
+                logger.error(f"AI请求失败: {e}")
                 if attempt == 0:
                     continue
             except (json.JSONDecodeError, KeyError, IndexError) as e:
-                logger.warning(f"AI output parse error (attempt {attempt + 1}): {e}")
+                logger.warning(f"AI解析失败(第{attempt + 1}次): {e}")
                 if attempt == 0:
                     continue
 
-        logger.warning("All AI attempts failed, returning default extraction")
+        logger.warning("AI全部重试失败，返回默认提取")
         return _default_extraction()
 
     except Exception as e:
-        logger.error(f"extract_structure_from_url failed: {e}")
+        logger.error(f"内容结构提取失败: {e}")
         return None

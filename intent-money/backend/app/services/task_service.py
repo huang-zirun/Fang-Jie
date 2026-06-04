@@ -88,7 +88,7 @@ async def generate_task(
             market_insights=market_insights,
         )
     else:
-        logger.warning(f"No content structure found for intent={intent_id}, platform={platform_id}")
+        logger.warning(f"未找到内容结构(intent={intent_id}, platform={platform_id})")
         content = FIXED_TEMPLATE.copy()
 
     is_optimized = optimization_prompt is not None

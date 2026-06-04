@@ -27,6 +27,6 @@ async def expire_old_tasks():
         await db.commit()
 
         if expired_count > 0:
-            logger.info(f"Expired {expired_count} tasks older than 48h")
+            logger.info(f"已过期{expired_count}个超过48小时的任务")
 
         return expired_count

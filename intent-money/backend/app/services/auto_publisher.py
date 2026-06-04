@@ -1,12 +1,6 @@
-"""Auto publisher with CDP support.
+"""Auto publisher using sau CLI.
 
-This module provides auto-publish functionality using CDP (Chrome DevTools Protocol)
-as the primary method, falling back to sau CLI if needed.
-
-CDP advantages:
-- No explicit cookie management needed
-- Uses already logged-in Chrome browser
-- More reliable than cookie-based automation
+Publishes content to platforms via the social-auto-upload CLI tool.
 """
 
 import asyncio
@@ -17,7 +11,6 @@ from pathlib import Path
 from typing import Any
 
 from app.config import settings
-from app.services.cdp_publisher import cdp_publish_task, CdpPublisher
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +46,7 @@ async def _run_sau_command(cmd: list[str]) -> dict:
     task_id = str(uuid.uuid4())
 
     try:
-        logger.info(f"Running sau command: {' '.join(cmd)}")
+        logger.info(f"执行sau命令: {' '.join(cmd)}")
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
@@ -65,11 +58,11 @@ async def _run_sau_command(cmd: list[str]) -> dict:
         stderr_str = stderr.decode("utf-8", errors="replace").strip()
 
         if proc.returncode == 0:
-            logger.info(f"Sau command succeeded: {stdout_str}")
+            logger.info(f"sau命令执行成功: {stdout_str}")
             return {"success": True, "task_id": task_id, "error": None}
         else:
             err_msg = stderr_str or stdout_str or "未知错误"
-            logger.error(f"Sau command failed: {err_msg}")
+            logger.error(f"sau命令执行失败: {err_msg}")
             return {"success": False, "task_id": task_id, "error": err_msg[:500]}
 
     except asyncio.TimeoutError:
@@ -207,11 +200,8 @@ async def auto_publish_task(
     title: str = "",
     content: str = "",
     tags: list[str] | None = None,
-    use_cdp: bool = True,
 ) -> dict[str, Any]:
-    """自动发布任务
-
-    优先使用 CDP（无需 Cookie 管理），失败时回退到 sau CLI
+    """自动发布任务（使用 sau CLI）
 
     Args:
         platform: 平台名称 (douyin, xhs)
@@ -221,7 +211,6 @@ async def auto_publish_task(
         title: 标题
         content: 内容/描述
         tags: 标签列表
-        use_cdp: 是否优先使用 CDP（默认 True）
     """
     if not settings.AUTO_PUBLISH_ENABLED:
         return {
@@ -231,48 +220,6 @@ async def auto_publish_task(
         }
 
     tags = tags or []
-    _CDP_TIMEOUT = 60  # CDP 发布超时保护（秒）
-
-    # 首先尝试使用 CDP
-    if use_cdp:
-        logger.info("Trying CDP publish for %s (timeout=%ds)", platform, _CDP_TIMEOUT)
-        try:
-            cdp_result = await asyncio.wait_for(
-                cdp_publish_task(
-                    platform=platform,
-                    video_path=video_path,
-                    image_paths=image_paths,
-                    title=title,
-                    content=content,
-                    tags=tags,
-                ),
-                timeout=_CDP_TIMEOUT,
-            )
-        except asyncio.TimeoutError:
-            logger.warning("CDP publish timed out after %ds for %s, falling back", _CDP_TIMEOUT, platform)
-            cdp_result = {
-                "success": False,
-                "task_id": str(uuid.uuid4()),
-                "error": f"CDP 发布超时（{_CDP_TIMEOUT}秒），自动降级",
-            }
-
-        # 如果 CDP 成功，直接返回
-        if cdp_result["success"]:
-            logger.info("CDP publish succeeded for %s (task_id=%s)", platform, cdp_result.get("task_id"))
-            return cdp_result
-
-        # 如果 CDP 失败但不是因为连接问题，也返回错误
-        error = cdp_result.get("error", "")
-        if "CDP 连接失败" not in error and "未登录" not in error and "超时" not in error:
-            # CDP 连接正常但发布失败，可能是页面结构问题
-            logger.warning("CDP publish failed: %s, trying fallback", error)
-        elif "超时" in error:
-            logger.warning("CDP publish timed out, falling back to sau CLI")
-        elif "CDP 连接失败" in error or "未登录" in error:
-            logger.info("CDP unavailable (%s), falling back to sau CLI", error)
-
-    # CDP 失败或禁用时，回退到 sau CLI
-    logger.info("Falling back to sau CLI for %s", platform)
 
     if platform == "douyin":
         if not video_path:
@@ -282,7 +229,7 @@ async def auto_publish_task(
                 "error": "抖音发布需要视频文件路径",
             }
         result = await publish_to_douyin_sau(video_path, title, tags, user_id)
-        logger.info("sau CLI result for douyin: success=%s", result["success"])
+        logger.info("抖音发布结果: success=%s", result["success"])
         return result
 
     elif platform == "xhs":
@@ -296,7 +243,7 @@ async def auto_publish_task(
                 "task_id": str(uuid.uuid4()),
                 "error": "小红书发布需要视频或图片",
             }
-        logger.info("sau CLI result for xhs: success=%s", result["success"])
+        logger.info("小红书发布结果: success=%s", result["success"])
         return result
     else:
         return {

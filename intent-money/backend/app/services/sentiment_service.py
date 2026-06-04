@@ -20,7 +20,7 @@ def analyze_sentiment(text: str) -> dict:
         score = float(s.sentiments)
         return {"score": score, "label": _classify_label(score)}
     except Exception as e:
-        logger.error(f"SnowNLP analyze failed: {e}")
+        logger.error(f"SnowNLP分析失败: {e}")
         return {"score": 0.5, "label": "neutral"}
 
 

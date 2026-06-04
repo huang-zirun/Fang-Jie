@@ -72,13 +72,13 @@ class XhsScraper(BasePlatformScraper):
             return results
 
         except httpx.HTTPStatusError as e:
-            logger.error(f"XHS search HTTP error: {e.response.status_code}")
+            logger.error(f"小红书搜索HTTP错误: {e.response.status_code}")
             return []
         except httpx.RequestError as e:
-            logger.error(f"XHS search request error: {e}")
+            logger.error(f"小红书搜索请求异常: {e}")
             return []
         except Exception as e:
-            logger.error(f"XHS search unexpected error: {e}")
+            logger.error(f"小红书搜索未知错误: {e}")
             return []
 
     async def get_note_detail(self, note_id: str) -> dict[str, Any] | None:
@@ -123,13 +123,13 @@ class XhsScraper(BasePlatformScraper):
             }
 
         except httpx.HTTPStatusError as e:
-            logger.error(f"XHS note detail HTTP error: {e.response.status_code}")
+            logger.error(f"小红书笔记详情HTTP错误: {e.response.status_code}")
             return None
         except httpx.RequestError as e:
-            logger.error(f"XHS note detail request error: {e}")
+            logger.error(f"小红书笔记详情请求异常: {e}")
             return None
         except Exception as e:
-            logger.error(f"XHS note detail unexpected error: {e}")
+            logger.error(f"小红书笔记详情未知错误: {e}")
             return None
 
     async def get_note_comments(self, note_id: str, limit: int = 50) -> list[dict[str, Any]]:
@@ -187,25 +187,25 @@ class XhsScraper(BasePlatformScraper):
                 return all_comments[:limit]
 
         except httpx.HTTPStatusError as e:
-            logger.error(f"XHS comments HTTP error: {e.response.status_code}")
+            logger.error(f"小红书评论HTTP错误: {e.response.status_code}")
             return []
         except httpx.RequestError as e:
-            logger.error(f"XHS comments request error: {e}")
+            logger.error(f"小红书评论请求异常: {e}")
             return []
         except Exception as e:
-            logger.error(f"XHS comments unexpected error: {e}")
+            logger.error(f"小红书评论未知错误: {e}")
             return []
 
     async def search_hot_videos(self, keyword: str, limit: int = 20) -> list[dict[str, Any]]:
-        logger.warning("XhsScraper does not support video search, returning empty list")
+        logger.warning("小红书爬虫不支持视频搜索")
         return []
 
     async def get_video_detail(self, video_id: str) -> dict[str, Any] | None:
-        logger.warning("XhsScraper does not support video detail, returning None")
+        logger.warning("小红书爬虫不支持视频详情")
         return None
 
     async def get_video_comments(self, video_id: str, limit: int = 50) -> list[dict[str, Any]]:
-        logger.warning("XhsScraper does not support video comments, returning empty list")
+        logger.warning("小红书爬虫不支持视频评论")
         return []
 
     async def check_health(self) -> bool:
@@ -217,5 +217,5 @@ class XhsScraper(BasePlatformScraper):
                 )
                 return resp.status_code == 200
         except Exception as e:
-            logger.error(f"XHS health check failed: {e}")
+            logger.error(f"小红书健康检查失败: {e}")
             return False

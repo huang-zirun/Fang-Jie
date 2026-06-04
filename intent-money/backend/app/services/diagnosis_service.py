@@ -115,17 +115,17 @@ async def _ai_deep_analysis(
         data = json.loads(text.strip())
 
         if not isinstance(data, dict) or "root_cause" not in data:
-            logger.warning("AI analysis output missing required fields")
+            logger.warning("AI输出缺少必填字段")
             return None
 
         return data
 
     except APITimeoutError:
-        logger.warning("AI diagnosis timeout")
+        logger.warning("AI诊断超时")
     except APIError as e:
-        logger.error(f"AI diagnosis API error: {e}")
+        logger.error(f"AI诊断请求失败: {e}")
     except (json.JSONDecodeError, KeyError, IndexError) as e:
-        logger.warning(f"AI diagnosis parse error: {e}")
+        logger.warning(f"AI诊断解析失败: {e}")
 
     return None
 
@@ -224,7 +224,7 @@ async def diagnose_performance(
                     else:
                         sentiment_signal = "neutral"
         except Exception as e:
-            logger.error(f"Sentiment signal analysis failed: {e}")
+            logger.error(f"情感信号分析失败: {e}")
 
     additional_data = {}
     if sentiment_signal:
@@ -244,10 +244,9 @@ async def diagnose_performance(
     await db.refresh(diagnosis)
 
     logger.info(
-        f"Diagnosis completed for task {report.task_id}: "
-        f"type={diagnosis.problem_type}, "
-        f"play={report.play_count}, comment={report.comment_count}, msg={report.message_count}, "
-        f"ai={'yes' if ai_analysis else 'no'}, confidence={rule_confidence}"
+        f"诊断完成: task={report.task_id}, 类型={diagnosis.problem_type}, "
+        f"播放={report.play_count}, 评论={report.comment_count}, 私信={report.message_count}, "
+        f"AI={'是' if ai_analysis else '否'}, 置信度={rule_confidence}"
     )
 
     return diagnosis
@@ -448,17 +447,17 @@ async def _ai_deep_analysis_from_snapshots(
         data = json.loads(text.strip())
 
         if not isinstance(data, dict) or "root_cause" not in data:
-            logger.warning("AI analysis output missing required fields")
+            logger.warning("AI输出缺少必填字段")
             return None
 
         return data
 
     except APITimeoutError:
-        logger.warning("AI diagnosis timeout")
+        logger.warning("AI诊断超时")
     except APIError as e:
-        logger.error(f"AI diagnosis API error: {e}")
+        logger.error(f"AI诊断请求失败: {e}")
     except (json.JSONDecodeError, KeyError, IndexError) as e:
-        logger.warning(f"AI diagnosis parse error: {e}")
+        logger.warning(f"AI诊断解析失败: {e}")
 
     return None
 
@@ -565,7 +564,7 @@ async def diagnose_from_snapshots(
                     else:
                         sentiment_signal = "neutral"
         except Exception as e:
-            logger.error(f"Sentiment signal analysis failed: {e}")
+            logger.error(f"情感信号分析失败: {e}")
 
     additional_data = {}
     if sentiment_signal:
@@ -585,12 +584,10 @@ async def diagnose_from_snapshots(
     await db.refresh(diagnosis)
 
     logger.info(
-        f"Snapshot diagnosis completed for task {task.id}: "
-        f"type={diagnosis.problem_type}, "
-        f"play={latest.play_count}, comment={latest.comment_count}, msg={latest.message_count}, "
-        f"snapshots={trend['snapshot_count']}, days={trend['days_since_deploy']}, "
-        f"trend={trend['play_trend']}, avg_growth={trend['avg_daily_play_growth']}, "
-        f"ai={'yes' if ai_analysis else 'no'}, confidence={rule_confidence}"
+        f"诊断完成: task={task.id}, 类型={diagnosis.problem_type}, "
+        f"播放={latest.play_count}, 评论={latest.comment_count}, 私信={latest.message_count}, "
+        f"快照={trend['snapshot_count']}, 天数={trend['days_since_deploy']}, "
+        f"趋势={trend['play_trend']}, AI={'是' if ai_analysis else '否'}, 置信度={rule_confidence}"
     )
 
     return diagnosis

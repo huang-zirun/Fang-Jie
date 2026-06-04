@@ -10,9 +10,8 @@ from app.config import settings
 from app.models.content_structure import ContentStructure
 from app.models.market_hot import MarketHot
 from app.models.platform import Platform
+from app.services.per_user_scraper import create_scraper_for_user
 from app.services.platform_scraper import douyin_scraper
-from app.services.platform_scraper.cdp_douyin_scraper import CdpDouyinScraper
-from app.services.platform_scraper.cdp_xhs_scraper import CdpXhsScraper
 from app.services.platform_scraper.xhs_scraper import XhsScraper
 from app.services.sentiment_service import analyze_comments_batch_async
 
@@ -53,7 +52,7 @@ async def analyze_market_trend(db: AsyncSession, platform_id: uuid.UUID) -> dict
     available_hook_types = list({s.hook_type for s in structures})
 
     if not settings.AI_API_KEY:
-        logger.warning("AI_API_KEY not set, returning default analysis")
+        logger.warning("AI密钥未配置，返回默认分析")
         return {
             "summary": "AI未配置，无法分析市场趋势",
             "trending_structures": available_hook_types[:2],
@@ -87,7 +86,7 @@ async def analyze_market_trend(db: AsyncSession, platform_id: uuid.UUID) -> dict
             data = json.loads(text.strip())
 
             if not isinstance(data, dict) or "summary" not in data:
-                logger.warning(f"AI output invalid structure (attempt {attempt + 1})")
+                logger.warning(f"AI输出结构无效(第{attempt + 1}次)")
                 if attempt == 0:
                     continue
                 return _default_analysis(available_hook_types)
@@ -95,19 +94,19 @@ async def analyze_market_trend(db: AsyncSession, platform_id: uuid.UUID) -> dict
             return data
 
         except APITimeoutError:
-            logger.warning(f"AI timeout (attempt {attempt + 1})")
+            logger.warning(f"AI超时(第{attempt + 1}次)")
             if attempt == 0:
                 continue
         except APIError as e:
-            logger.error(f"AI API error: {e}")
+            logger.error(f"AI请求失败: {e}")
             if attempt == 0:
                 continue
         except (json.JSONDecodeError, KeyError, IndexError) as e:
-            logger.warning(f"AI output parse error (attempt {attempt + 1}): {e}")
+            logger.warning(f"AI解析失败(第{attempt + 1}次): {e}")
             if attempt == 0:
                 continue
 
-    logger.warning("All AI attempts failed, returning default analysis")
+    logger.warning("AI全部重试失败，返回默认分析")
     return _default_analysis(available_hook_types)
 
 
@@ -188,17 +187,21 @@ async def update_market_scores(db: AsyncSession) -> int:
     return updated_count
 
 
-async def scrape_and_save_xhs_notes(db: AsyncSession, keyword: str) -> int:
-    scraper = CdpXhsScraper() if settings.CDP_ENABLED else XhsScraper()
+async def scrape_and_save_xhs_notes(db: AsyncSession, keyword: str, user_id: str | None = None) -> int:
+    scraper = None
+    if user_id and settings.PER_USER_SCRAPING:
+        scraper = await create_scraper_for_user(db, "xhs", user_id)
+    if not scraper:
+        scraper = XhsScraper()
     try:
         notes = await scraper.search_hot_notes(keyword=keyword)
     except Exception as e:
-        logger.error(f"XHS scrape failed for keyword '{keyword}': {e}")
+        logger.error(f"小红书抓取失败('{keyword}'): {e}")
         await _close_scraper(scraper)
         return 0
 
     if not notes:
-        logger.info(f"XHS scrape returned no results for keyword '{keyword}'")
+        logger.info(f"小红书抓取无结果('{keyword}')")
         await _close_scraper(scraper)
         return 0
 
@@ -207,7 +210,7 @@ async def scrape_and_save_xhs_notes(db: AsyncSession, keyword: str) -> int:
     )
     platform = platform_result.scalars().first()
     if not platform:
-        logger.warning("Platform '小红书' not found, skipping save")
+        logger.warning("平台'小红书'不存在，跳过保存")
         return 0
 
     saved_count = 0
@@ -242,7 +245,7 @@ async def scrape_and_save_xhs_notes(db: AsyncSession, keyword: str) -> int:
                                 "avg_score": sentiment_result["avg_score"],
                             }
                 except Exception as e:
-                    logger.error(f"XHS comment sentiment analysis failed for note: {e}")
+                    logger.error(f"小红书评论情感分析失败: {e}")
 
             hot = MarketHot(
                 platform_id=platform.id,
@@ -257,13 +260,13 @@ async def scrape_and_save_xhs_notes(db: AsyncSession, keyword: str) -> int:
             db.add(hot)
             saved_count += 1
         except Exception as e:
-            logger.error(f"Failed to save XHS note: {e}")
+            logger.error(f"保存小红书笔记失败: {e}")
             continue
 
     try:
         await db.commit()
     except Exception as e:
-        logger.error(f"Failed to commit XHS notes: {e}")
+        logger.error(f"提交小红书笔记失败: {e}")
         await db.rollback()
         await _close_scraper(scraper)
         return 0
@@ -272,21 +275,25 @@ async def scrape_and_save_xhs_notes(db: AsyncSession, keyword: str) -> int:
     return saved_count
 
 
-async def scrape_and_save_hot_videos(db: AsyncSession, platform_id: uuid.UUID, keyword: str) -> int:
+async def scrape_and_save_hot_videos(db: AsyncSession, platform_id: uuid.UUID, keyword: str, user_id: str | None = None) -> int:
     if not settings.SCRAPER_ENABLED:
-        logger.info("Scraper is disabled, skipping scrape_and_save_hot_videos")
+        logger.info("爬虫已禁用，跳过热门抓取")
         return 0
 
-    scraper = CdpDouyinScraper() if settings.CDP_ENABLED else douyin_scraper
+    scraper = None
+    if user_id and settings.PER_USER_SCRAPING:
+        scraper = await create_scraper_for_user(db, "douyin", user_id)
+    if not scraper:
+        scraper = douyin_scraper
     try:
         videos = await scraper.search_hot_videos(keyword, limit=20)
     except Exception as e:
-        logger.error(f"Scrape hot videos failed for keyword '{keyword}': {e}")
+        logger.error(f"热门视频抓取失败('{keyword}'): {e}")
         await _close_scraper(scraper)
         return 0
 
     if not videos:
-        logger.info(f"No videos found for keyword '{keyword}'")
+        logger.info(f"未找到'{keyword}'视频")
         await _close_scraper(scraper)
         return 0
 
@@ -321,7 +328,7 @@ async def scrape_and_save_hot_videos(db: AsyncSession, platform_id: uuid.UUID, k
                                 "avg_score": sentiment_result["avg_score"],
                             }
                 except Exception as e:
-                    logger.error(f"Douyin comment sentiment analysis failed for video: {e}")
+                    logger.error(f"抖音评论情感分析失败: {e}")
 
             hot = MarketHot(
                 platform_id=platform_id,
@@ -344,17 +351,49 @@ async def scrape_and_save_hot_videos(db: AsyncSession, platform_id: uuid.UUID, k
             db.add(hot)
             saved_count += 1
         except Exception as e:
-            logger.error(f"Failed to save video hot record: {e}")
+            logger.error(f"保存热门视频失败: {e}")
             continue
 
     try:
         await db.commit()
     except Exception as e:
-        logger.error(f"Failed to commit scraped hot videos: {e}")
+        logger.error(f"提交热门视频失败: {e}")
         await db.rollback()
         await _close_scraper(scraper)
         return 0
 
     await _close_scraper(scraper)
-    logger.info(f"Saved {saved_count} hot videos for keyword '{keyword}'")
+    logger.info(f"保存{saved_count}条'{keyword}'热门视频")
     return saved_count
+
+
+async def scrape_via_extension(db: AsyncSession, platform_id: uuid.UUID, keywords: list[str] | None = None) -> dict:
+    """扩展辅助抓取 - 记录扩展抓取请求，实际数据由扩展提交到 /market/extension-scrape。
+
+    此函数用于定时任务中，标记扩展抓取为可用路径。
+    返回扩展状态信息供日志记录。
+    """
+    if keywords is None:
+        keywords = ["袜子", "好物推荐", "穿搭", "生活好物"]
+
+    return {
+        "method": "extension",
+        "status": "pending",
+        "message": "扩展抓取需要前端配合触发，数据将通过 /market/extension-scrape 端点提交",
+        "keywords": keywords,
+        "platform_id": str(platform_id),
+    }
+
+
+async def scrape_xhs_via_extension(db: AsyncSession, platform_id: uuid.UUID, keywords: list[str] | None = None) -> dict:
+    """小红书扩展辅助抓取 - 记录扩展抓取请求，实际数据由扩展提交到 /market/extension-scrape-xhs。"""
+    if keywords is None:
+        keywords = ["袜子", "好物推荐", "穿搭", "生活好物"]
+
+    return {
+        "method": "extension_xhs",
+        "status": "pending",
+        "message": "小红书扩展抓取需要前端配合触发，数据将通过 /market/extension-scrape-xhs 端点提交",
+        "keywords": keywords,
+        "platform_id": str(platform_id),
+    }

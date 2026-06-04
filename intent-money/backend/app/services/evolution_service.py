@@ -58,7 +58,7 @@ async def adjust_rule_weights(db: AsyncSession) -> dict:
 
     await db.commit()
 
-    logger.info(f"Rule weight adjustment completed: {len(adjusted)} rules processed")
+    logger.info(f"规则权重调整完成: 处理{len(adjusted)}条规则")
 
     return {
         "total_rules": len(adjusted),
