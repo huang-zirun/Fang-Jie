@@ -376,6 +376,7 @@ async def swap_task(
             intent_id=task.intent_id,
             platform_id=task.platform_id,
             task_type=task.task_type,
+            skip_pending_check=True,  # 换条时跳过 pending 检查，因为旧任务已标记为 SWAPPED
         )
     except ValueError as e:
         error_msg = str(e)

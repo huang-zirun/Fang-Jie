@@ -110,27 +110,29 @@ async def auto_publish_endpoint(
 @router.post("/cookie", response_model=dict)
 async def upload_cookie(
     data: CookieUploadRequest,
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     if data.platform not in ("douyin", "xhs"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="平台仅支持 douyin / xhs")
 
-    path = await save_cookie(data.platform, str(current_user.id), data.cookie_data)
+    path = await save_cookie(db, data.platform, str(current_user.id), data.cookie_data)
     return {"message": "Cookie 已保存", "path": path}
 
 
 @router.get("/cookie/{platform}", response_model=CookieStatusResponse)
 async def check_cookie_status(
     platform: str,
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     if platform not in ("douyin", "xhs"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="平台仅支持 douyin / xhs")
 
     user_id = str(current_user.id)
-    has_cookie = (await get_cookie_path(platform, user_id)) is not None
-    valid = await is_cookie_valid(platform, user_id) if has_cookie else False
-    expires_at = await get_cookie_expires_at(platform, user_id) if has_cookie else None
+    has_cookie = (await get_cookie_path(db, platform, user_id)) is not None
+    valid = await is_cookie_valid(db, platform, user_id) if has_cookie else False
+    expires_at = await get_cookie_expires_at(db, platform, user_id) if has_cookie else None
 
     return CookieStatusResponse(
         platform=platform,
