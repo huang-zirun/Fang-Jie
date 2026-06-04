@@ -1,0 +1,14 @@
+- [x] 扩展 manifest.json 已添加抖音页面 content script 注入规则和 scripting 权限
+- [x] 抖音页面 content script 能读取 `window.__INIT_PROPS__` SSR 数据并提取搜索结果
+- [x] 抖音页面 content script 在 SSR 数据不可用时能从 DOM 卡片提取数据
+- [x] 扩展 background.js 能使用真实 Cookie 调用抖音搜索 API
+- [x] API 调用失败时能回退到 content script SSR 数据提取
+- [x] 抓取结果能通过 HTTPS POST 同步到后端
+- [x] 后端 `POST /market/extension-scrape` 端点能正确接收和存储扩展提交的数据
+- [x] MarketHot 记录的 `hot_type` 标记为 `"extension_scraped"`
+- [x] 定时任务优先尝试扩展抓取，扩展离线时回退到后端 API 爬虫
+- [x] 扩展在线状态可被后端检测
+- [x] X-Bogus 签名问题有处理方案（Main World 调用或请求拦截）
+- [x] 前端点击"今日任务"时自动触发扩展抓取（PlatformSelect.vue）
+- [x] content.js 新增 `INTENT_MONEY_TRIGGER_SCRAPE` 消息处理器
+- [x] 后端导入验证通过

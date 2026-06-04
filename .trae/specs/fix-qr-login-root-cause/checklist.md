@@ -1,0 +1,17 @@
+- [x] CDP 路径 XHS 登录 URL 改为 `https://creator.xiaohongshu.com/login`
+- [x] CDP 路径抖音登录 URL 改为 `https://creator.douyin.com/`
+- [x] CDP 路径 XHS 登录检测使用 URL 跳转 + login-box 不可见
+- [x] CDP 路径抖音登录检测使用 URL 跳转到 creator-micro/home + 登录元素不可见
+- [x] CDP 路径 XHS 二维码截取适配创作者中心登录页 DOM 结构
+- [x] CDP 路径抖音二维码截取适配创作者中心登录页
+- [x] CDP session confirmed 后不在字典中立即移除，保留 30 秒
+- [x] CDP `get_storage_state()` 包含 localStorage 数据
+- [x] 抖音 Cookie 验证使用 Playwright 浏览器方式
+- [x] 抖音验证支持 storage_state JSON 和 cookie_string 两种格式
+- [x] `accounts.py` 和 `cookie_lifecycle.py` 使用统一验证入口 `validate_platform_cookie()`
+- [x] 删除 `accounts.py` 和 `cookie_lifecycle.py` 中的重复验证代码
+- [x] CDP 路径小红书扫码登录成功后前端显示"登录成功"
+- [x] CDP 路径抖音扫码登录成功后前端显示"登录成功"
+- [x] 小红书验证功能正常（storage_state 格式）
+- [x] 抖音验证功能正常（storage_state 格式和 cookie_string 格式）
+- [x] Playwright 降级路径仍正常工作

@@ -1,0 +1,20 @@
+- [x] content.js 中已移除 `event.source !== window` 检查
+- [x] content.js 保留 `event.data.source === "intent-money-extension"` 循环防护
+- [x] 页面 PING → content script PONG 通信链路恢复正常
+- [x] background.js 中新增 `BROADCAST_STATUS` handler
+- [x] cookie 变化时向所有激活标签页广播 `INTENT_MONEY_STATUS_UPDATE`
+- [x] content.js 能正确发送 `INTENT_MONEY_STATUS_UPDATE` 到页面
+- [x] `syncCookiesToBackend` 在 `authToken` 缺失时继续尝试同步（不直接 return）
+- [x] 前端 `checkExtension()` 实现指数退避重试（最多 5 次）
+- [x] 前端在页面 `visibilitychange` 为 visible 时重新检测扩展
+- [x] 检测成功后立即执行 `configureExtension()` 同步配置
+- [x] 组件卸载时清理所有定时器和事件监听器
+- [x] 前端新增 `extensionStatus` 响应式对象存储扩展状态
+- [x] 前端全局 message 监听器正确接收并处理 `INTENT_MONEY_STATUS_UPDATE`
+- [x] 小红书/抖音账号卡片显示扩展登录状态标识
+- [x] 扩展已登录但后端未绑定时显示"同步到后端"按钮
+- [x] 点击"同步到后端"成功将 cookie 同步到后端
+- [x] 扩展安装后前端能自动检测到并显示"扩展已连接"
+- [x] 扩展未安装时前端正确显示"未检测到浏览器扩展"
+- [x] 小红书/抖音登录后扩展 popup 和前端状态一致
+- [x] 前端代码通过 `vue-tsc` 类型检查且无构建错误

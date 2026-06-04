@@ -1,0 +1,9 @@
+- [x] 后端 `extension_cookie_login` 对扩展传来的 Cookie domain 进行规范化（`www.xiaohongshu.com` → `.xiaohongshu.com`，`www.douyin.com` → `.douyin.com`）
+- [x] `_normalize_cookie_domain` 函数正确处理各种子域名变体（`www.`、`creator.`、已是父域名等）
+- [x] 存储到数据库的 `storage_state` 中所有 Cookie 的 domain 均为父域名格式
+- [x] Playwright 加载规范化后的 `storage_state` 访问 `creator.xiaohongshu.com` 时能携带 `web_session` Cookie
+- [x] 扩展 `CHECK_LOGIN` handler 的 `loggedIn` 判断不再依赖 `!sessionCookie.session`
+- [x] 扩展 `chrome.cookies.onChanged` 监听器的 `loggedIn` 判断与 `CHECK_LOGIN` 一致
+- [x] 扩展 `SYNC_COOKIES` 和 `BROADCAST_STATUS` handler 的 `loggedIn` 判断与 `CHECK_LOGIN` 一致
+- [x] 已有的 Cookie 字符串导入路径（`_parse_cookie_string`）不受影响，仍使用硬编码的父域名
+- [x] 扫码登录路径（`qrcode_login.py`）不受影响，其 `storage_state` 由 Playwright 直接生成

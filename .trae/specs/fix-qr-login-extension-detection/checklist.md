@@ -1,0 +1,13 @@
+- [ ] manifest.json content_scripts.matches 改为 `<all_urls>`，content script 在所有 URL 上注入
+- [ ] background.js 新增 SET_COOKIES handler，能接收并写入 Cookie 到真实浏览器
+- [ ] content.js 新增 INTENT_MONEY_SET_COOKIES 消息转发
+- [ ] 前端 QR 登录 confirmed 后调用 syncCookiesToExtension 将 Cookie 同步到扩展
+- [ ] 前端扩展未安装时跳过 Cookie 同步，不阻塞正常流程
+- [ ] background.js CHECK_LOGIN 增加后端 API 降级查询
+- [ ] 后端提供账号绑定状态查询接口（供扩展降级使用）
+- [ ] CHECK_LOGIN 返回值包含 source 字段（local / backend）
+- [ ] popup.js 根据来源显示不同状态样式
+- [ ] popup.html UI 区分本地Cookie和服务端同步两种登录状态
+- [ ] QR 登录成功后账号卡片正确显示绑定状态（不受扩展检测影响）
+- [ ] 顶部扩展提示区与账号卡片状态独立展示
+- [ ] localhost / 127.0.0.1 / Docker IP / 局域网 IP 等环境下 content script 均正常工作

@@ -1,0 +1,53 @@
+{
+  "manifest_version": 3,
+  "name": "Intent Money Cookie Helper",
+  "version": "1.0.0",
+  "description": "获取小红书和抖音的Cookie，用于Intent Money OS平台账号绑定",
+  "permissions": ["cookies", "tabs", "activeTab", "storage", "scripting"],
+  "host_permissions": [
+    "*://*.xiaohongshu.com/*",
+    "*://*.douyin.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost:*/*",
+        "http://127.0.0.1:*/*",
+        "https://trades.zzy88.com/*"
+      ],
+      "js": ["content.js"]
+    },
+    {
+      "matches": ["*://*.douyin.com/*"],
+      "js": ["douyin_content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://*.xiaohongshu.com/*"],
+      "js": ["xhs_content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["xhs_main_world.js"],
+      "matches": ["*://*.xiaohongshu.com/*"]
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

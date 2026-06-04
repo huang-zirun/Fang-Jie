@@ -1,0 +1,18 @@
+- [x] manifest.json 已添加小红书页面 content_scripts 匹配规则（`*://*.xiaohongshu.com/*`）
+- [x] xhs_main_world.js 能读取 `window.__INIT_PROPS__` SSR 数据并通过 postMessage 传递
+- [x] xhs_main_world.js 能拦截 fetch/XHR 请求，捕获 `edith.xiaohongshu.com/api/sns/web/` 的 API 响应
+- [x] xhs_main_world.js 能调用小红书签名函数生成 X-s / X-t（或从拦截请求中复用）
+- [x] xhs_content.js 能接收 Main World 的 postMessage 并转发给 background
+- [x] xhs_content.js 能解析小红书搜索页 DOM 提取笔记数据（降级方案）
+- [x] xhs_content.js 页面加载完成时自动提取 SSR 数据并上报
+- [x] background.js 的 SCRAPE_XHS_SEARCH 处理器实现分层降级（拦截缓存 → API → SSR → DOM）
+- [x] background.js 能使用 Cookie + 签名主动调用小红书搜索 API
+- [x] background.js 能缓存拦截到的 API 响应数据
+- [x] background.js 能将抓取结果 POST 到后端 `/market/extension-scrape-xhs`
+- [x] background.js 的 CHECK_XHS_TAB 和 OPEN_XHS_SEARCH 辅助处理器正常工作
+- [x] 后端 `POST /market/extension-scrape-xhs` 端点能接收并存储小红书扩展数据
+- [x] 后端 XhsExtensionScrapeData schema 包含 keyword、platform_id、notes 列表、source 字段
+- [x] 后端 MarketHot 记录的 hot_type 正确标记为 `xhs_extension_scraped` 或 `xhs_extension_intercepted`
+- [x] market_service.py 的 scrape_xhs_via_extension() 函数正确集成
+- [x] 分层降级逻辑完整：拦截缓存 → 主动 API → SSR 提取 → DOM 解析，每层失败自动降级
+- [x] 数据来源标记正确（intercepted / api / ssr / dom）

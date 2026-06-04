@@ -1,0 +1,26 @@
+- [x] UserPlatformAccount 数据模型已创建，包含所有必要字段（user_id, platform, encrypted_cookie, cookie_iv, cookie_status, bind_status 等）
+- [x] Alembic 迁移脚本可成功执行，`user_platform_accounts` 表在 SQLite 中正确创建
+- [x] User 模型包含 `platform_accounts` relationship，可正确关联查询
+- [x] CookieVault 加密/解密功能正常：加密后 Cookie 无法直接读取，解密时 AAD 验证通过
+- [x] CookieVault AAD 防护有效：使用不同 user_id 解密同一密文会失败
+- [x] `COOKIE_ENCRYPTION_KEY` 环境变量未配置时，开发模式使用固定密钥并发出警告
+- [x] 手动导入 Cookie API 正常工作：`POST /accounts/{platform}/cookie` 验证 Cookie 有效性后加密存储
+- [x] 无效 Cookie 导入时返回明确错误信息
+- [x] 账号列表 API 正常工作：`GET /accounts` 返回当前用户绑定的所有平台账号及状态
+- [x] 解绑 API 正常工作：`DELETE /accounts/{platform}` 删除加密 Cookie 和绑定记录
+- [x] QR 码登录 API 正常工作：`POST /accounts/{platform}/qrcode` 返回 QR 码图片
+- [x] QR 码登录状态轮询正常：`GET /accounts/{platform}/qrcode/{session_id}/status` 返回 pending/scanned/confirmed/expired
+- [x] QR 码登录成功后 Cookie 自动提取并加密存储
+- [x] Per-User 抓取架构正常：已登录用户请求抓取数据时使用自己的 Cookie
+- [x] 未绑定平台账号时返回 403 错误并引导绑定
+- [x] Cookie 过期时自动标记为 expired 并返回 403 错误
+- [x] CDP 共享模式降级兼容：`PER_USER_SCRAPING=false` 时回退到原有 CDP 模式
+- [x] 抓取请求限速生效：超频请求返回 429 错误
+- [x] Cookie 定时验证任务正常执行：每日验证 active Cookie，失效的标记为 expired
+- [x] 抓取时 401 响应自动标记 Cookie 为 expired
+- [x] 前端账号管理页面正常展示：已绑定账号卡片、Cookie 状态、操作按钮
+- [x] 前端手动导入 Cookie 对话框正常工作
+- [x] 前端扫码登录对话框正常展示 QR 码并自动轮询状态
+- [x] 前端解绑操作正常：确认弹窗 → 调用 API → 刷新列表
+- [x] 导航栏包含账号管理入口
+- [x] 现有功能（任务生成、数据回填、诊断）在 Per-User 模式下不受影响

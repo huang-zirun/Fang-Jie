@@ -1,0 +1,13 @@
+- [x] Chrome Extension 可读取小红书所有 Cookie（含 httpOnly 的 web_session）
+- [x] Extension popup UI 正确显示 Cookie 状态和一键获取按钮
+- [x] Extension 通过 window.postMessage 与前端页面正确通信
+- [x] Extension 可打开小红书登录页并检测登录完成
+- [x] Extension 监听 chrome.cookies.onChanged 自动同步 Cookie 变化
+- [x] 后端 POST /accounts/{platform}/extension 端点正确接收并存储 Cookie
+- [x] Chrome Cookie 格式正确转换为 Playwright storage_state 格式
+- [x] CookieVault 加密存储逻辑正确复用
+- [x] 前端正确检测扩展安装状态并展示相应 UI
+- [x] 扩展已安装时"扫码登录"变为"一键登录"
+- [x] 扩展未安装时降级到 CDP/Playwright 方案正常工作
+- [x] 登录优先级调度正确：Extension → CDP → Playwright
+- [ ] Cookie 自动续期功能正常工作（需手动测试验证）

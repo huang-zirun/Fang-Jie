@@ -1,0 +1,16 @@
+- [x] main.py 中所有英文日志已替换为简洁中文
+- [x] ai_service.py 中所有英文日志已替换为简洁中文
+- [x] market_service.py 中所有英文日志已替换为简洁中文
+- [x] api/v1/market.py 中所有英文日志已替换为简洁中文
+- [x] douyin_scraper.py 中所有英文日志已替换为简洁中文
+- [x] xhs_scraper.py 中所有英文日志已替换为简洁中文
+- [x] cookie_lifecycle.py 中所有英文日志已替换为简洁中文
+- [x] cookie_manager.py 中所有英文日志已替换为简洁中文
+- [x] cookie_vault.py 中所有英文日志已替换为简洁中文
+- [x] diagnosis_service.py 中所有英文日志已替换为简洁中文
+- [x] structure_extractor.py 中所有英文日志已替换为简洁中文
+- [x] auto_publisher.py 中所有英文日志已替换为简洁中文
+- [x] qrcode_login.py 中所有英文日志已替换为简洁中文
+- [x] per_user_scraper.py 中所有英文日志已替换为简洁中文
+- [x] 其余文件（accounts.py, snapshot_scheduler.py, task_service.py, task_cleanup.py, sentiment_service.py, evolution_service.py）英文日志已替换为简洁中文
+- [x] 无遗漏：验证扫描确认所有英文日志消息已替换为中文
