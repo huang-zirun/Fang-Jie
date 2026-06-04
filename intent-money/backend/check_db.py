@@ -11,20 +11,35 @@ import sys
 
 
 def get_db_path() -> str:
-    """从 DATABASE_URL 环境变量提取 SQLite 数据库文件路径。"""
+    """从 DATABASE_URL 环境变量提取 SQLite 数据库文件路径。
+
+    SQLAlchemy aiosqlite URL 格式说明：
+    - 绝对路径: sqlite+aiosqlite:////app/data/intent_money.db
+      (:// 是协议分隔符，/ 是 SQLite 绝对路径前缀，/app/data/... 是实际路径)
+    - 相对路径: sqlite+aiosqlite:///./intent_money.db
+      (三个斜杠 + 点 + 斜杠 表示相对于当前工作目录)
+    """
     db_url = os.environ.get("DATABASE_URL", "")
 
-    if "////" in db_url:
-        # 绝对路径: sqlite+aiosqlite:////app/data/intent_money.db
-        return db_url.split("////", 1)[1]
-    elif "///./" in db_url:
-        # 相对路径: sqlite+aiosqlite:///./intent_money.db
-        return os.path.join("/app", db_url.split("///./", 1)[1])
-    elif "///" in db_url:
-        # 其他绝对路径
-        return db_url.split("///", 1)[1]
-    else:
-        return "/app/data/intent_money.db"
+    # 去掉协议前缀，提取路径部分
+    # sqlite+aiosqlite:/// 后面的部分就是路径
+    # 关键：用 urlparse 或者简单的字符串处理
+    prefix = "sqlite+aiosqlite:///"
+    if db_url.startswith(prefix):
+        path_part = db_url[len(prefix):]
+        # path_part 可能是:
+        #   /app/data/intent_money.db (绝对路径，第一个字符是 /)
+        #   ./intent_money.db (相对路径)
+        #   intent_money.db (相对路径，无 ./)
+        if path_part.startswith("/"):
+            # 绝对路径
+            return path_part
+        else:
+            # 相对路径，基于 /app 工作目录
+            return os.path.join("/app", path_part)
+
+    # 回退默认值
+    return "/app/data/intent_money.db"
 
 
 def check_db_state(db_path: str) -> str:
