@@ -157,8 +157,11 @@ async def daily_cookie_validation():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # 生产环境使用 alembic 迁移管理表结构，跳过 create_all
+    # 开发环境仍然使用 create_all 确保表存在
+    if settings.ENV != "production":
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
     await seed_all()
 
     _background_tasks.append(asyncio.create_task(daily_market_analysis()))

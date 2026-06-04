@@ -38,7 +38,6 @@ fi
 # 检查 .env 中是否有 Windows 路径
 if grep -qE '[A-Z]:\\\\' "$ENV_FILE" 2>/dev/null; then
     echo "⚠️  检测到 .env 中包含 Windows 路径，正在清理..."
-    # 清理 SOCIAL_AUTO_UPLOAD_PATH 中的 Windows 路径
     sed -i 's|^SOCIAL_AUTO_UPLOAD_PATH=.*|SOCIAL_AUTO_UPLOAD_PATH=|' "$ENV_FILE"
     echo "✅ 已清理 Windows 路径"
 fi
@@ -48,17 +47,13 @@ if grep -q 'SECRET_KEY=change-me\|SECRET_KEY=your-secret-key\|SECRET_KEY=your-88
     echo "⚠️  SECRET_KEY 仍为默认值，生产环境强烈建议修改！"
 fi
 
-# 确保 DATABASE_URL 使用容器内绝对路径
-if grep -q 'DATABASE_URL=sqlite+aiosqlite:///./intent_money.db' "$ENV_FILE"; then
-    echo "⚠️  .env 中 DATABASE_URL 为相对路径，Docker Compose 会通过 environment 覆盖为容器内绝对路径"
-fi
-
 echo "✅ 环境配置检查完成"
 
 # ========== 2. 停止旧容器 ==========
 echo ""
 echo "📋 步骤 2/6: 停止旧容器..."
-docker compose -f "$COMPOSE_FILE" down --remove-orphans 2>/dev/null || true
+cd "$SCRIPT_DIR"
+docker compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
 echo "✅ 旧容器已停止"
 
 # ========== 3. 备份数据库（如果存在）==========
@@ -66,9 +61,12 @@ echo ""
 echo "📋 步骤 3/6: 备份数据库..."
 mkdir -p "$SCRIPT_DIR/../backups"
 
-# 获取项目名（用于确定 volume 名）
-PROJECT_NAME=$(basename "$(dirname "$SCRIPT_DIR")")
+# 获取 Compose 项目名（目录名的 小写 形式，Docker Compose 用此作为前缀）
+# 当前目录结构是 intent-money/docker/，所以项目名是 docker
+PROJECT_NAME="docker"
 VOLUME_NAME="${PROJECT_NAME}-db_data"
+
+echo "   查找数据卷: $VOLUME_NAME"
 
 # 尝试备份数据库
 if docker volume inspect "$VOLUME_NAME" >/dev/null 2>&1; then
@@ -78,19 +76,21 @@ if docker volume inspect "$VOLUME_NAME" >/dev/null 2>&1; then
         -v "$SCRIPT_DIR/../backups:/backup" \
         alpine sh -c "if [ -f /data/intent_money.db ]; then cp /data/intent_money.db /backup/$BACKUP_FILE && echo '✅ 数据库已备份到 backups/$BACKUP_FILE'; else echo 'ℹ️  数据库文件尚不存在（首次部署），跳过备份'; fi"
 else
-    echo "ℹ️  数据卷不存在（首次部署），跳过备份"
+    echo "ℹ️  数据卷 $VOLUME_NAME 不存在（可能首次部署），跳过备份"
+    echo "   可用的 Docker volumes:"
+    docker volume ls | grep db_data || echo "   (无匹配的 volume)"
 fi
 
 # ========== 4. 构建镜像 ==========
 echo ""
 echo "📋 步骤 4/6: 构建 Docker 镜像..."
-docker compose -f "$COMPOSE_FILE" build --no-cache
+docker compose -f docker-compose.prod.yml build --no-cache
 echo "✅ 镜像构建完成"
 
 # ========== 5. 启动服务 ==========
 echo ""
 echo "📋 步骤 5/6: 启动服务..."
-docker compose -f "$COMPOSE_FILE" up -d
+docker compose -f docker-compose.prod.yml up -d
 echo "✅ 服务已启动"
 
 # ========== 6. 等待并验证 ==========
@@ -98,17 +98,30 @@ echo ""
 echo "📋 步骤 6/6: 等待服务就绪并验证..."
 
 # 等待后端健康检查通过
-echo "   等待后端启动（最多 120 秒）..."
-for i in $(seq 1 24); do
-    if docker compose -f "$COMPOSE_FILE" ps backend 2>/dev/null | grep -q "healthy"; then
+echo "   等待后端启动（最多 180 秒）..."
+for i in $(seq 1 36); do
+    STATUS=$(docker compose -f docker-compose.prod.yml ps --format json backend 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('Health','unknown'))" 2>/dev/null || echo "unknown")
+    
+    if [ "$STATUS" = "healthy" ]; then
         echo "   ✅ 后端健康检查通过"
         break
     fi
-    if [ $i -eq 24 ]; then
-        echo "   ❌ 后端健康检查超时"
+    
+    # 检查容器是否崩溃
+    RUNNING=$(docker compose -f docker-compose.prod.yml ps backend 2>/dev/null | grep -c "Up\|running" || true)
+    if [ "$RUNNING" -eq 0 ] && [ "$STATUS" != "starting" ] && [ "$STATUS" != "unknown" ]; then
+        echo "   ❌ 后端容器已停止"
         echo ""
         echo "📋 后端容器日志（最近 50 行）："
-        docker compose -f "$COMPOSE_FILE" logs --tail 50 backend
+        docker compose -f docker-compose.prod.yml logs --tail 50 backend
+        exit 1
+    fi
+    
+    if [ $i -eq 36 ]; then
+        echo "   ❌ 后端健康检查超时"
+        echo ""
+        echo "📋 后端容器日志（最近 80 行）："
+        docker compose -f docker-compose.prod.yml logs --tail 80 backend
         echo ""
         echo "💡 排查建议："
         echo "   1. 查看完整日志: docker compose -f docker-compose.prod.yml logs backend"
@@ -116,7 +129,9 @@ for i in $(seq 1 24); do
         echo "   3. 进入容器排查: docker compose -f docker-compose.prod.yml exec backend bash"
         exit 1
     fi
+    
     sleep 5
+    echo "   ... 等待中 ($((i*5))秒) 状态: $STATUS"
 done
 
 # 等待 nginx 就绪
@@ -136,7 +151,7 @@ echo "  🎉 部署完成！"
 echo "=========================================="
 echo ""
 echo "📊 服务状态："
-docker compose -f "$COMPOSE_FILE" ps
+docker compose -f docker-compose.prod.yml ps
 echo ""
 echo "🌐 访问地址: http://localhost:9090"
 echo "📋 查看日志: docker compose -f docker-compose.prod.yml logs -f"
