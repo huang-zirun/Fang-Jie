@@ -10,6 +10,7 @@ logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
 from app.api.v1.router import router as v1_router
+from app.config import settings
 from app.database import async_session_factory, engine, Base
 from app.models import ExtractedStructure  # noqa: F401
 from app.models.user_event import UserEvent  # noqa: F401
