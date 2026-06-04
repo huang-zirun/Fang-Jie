@@ -5,7 +5,7 @@ export PYTHONPATH=/app
 # 确保数据目录存在且有正确权限
 mkdir -p /app/data
 
-# 输出诊断信息（帮助排查部署问题）
+# 输出诊断信息
 echo "=== Intent Money OS 启动诊断 ==="
 echo "DATABASE_URL: ${DATABASE_URL:-未设置}"
 echo "ENV: ${ENV:-未设置}"
@@ -20,79 +20,88 @@ echo "================================"
 # 而 "CREATE TABLE" 会因表已存在而失败。
 echo "正在检查数据库迁移状态..."
 
-# 检查是否存在 alembic_version 记录
-STAMP_NEEDED=$(uv run python -c "
-import sqlite3, os, sys
-
-db_url = os.environ.get('DATABASE_URL', '')
-# 从 DATABASE_URL 提取文件路径
-if '////' in db_url:
-    db_path = db_url.split('////', 1)[1]
-elif '///./' in db_url:
-    db_path = db_url.split('///./', 1)[1]
-    # 相对路径转为绝对路径
-    db_path = os.path.join('/app', db_path)
-elif '///' in db_url:
-    db_path = db_url.split('///', 1)[1]
-else:
-    db_path = 'intent_money.db'
-
-if not os.path.exists(db_path):
-    # 数据库文件不存在 -> 新数据库，需要完整迁移
-    print('migrate')
-    sys.exit(0)
-
-conn = sqlite3.connect(db_path)
-try:
-    # 检查 alembic_version 表是否存在且有记录
-    result = conn.execute(\"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='alembic_version'\").fetchone()
-    if result[0] > 0:
-        version = conn.execute('SELECT version_num FROM alembic_version').fetchall()
-        if version:
-            print('has_version')
-            sys.exit(0)
-    
-    # 没有 alembic_version 记录，检查是否有其他表
-    tables = conn.execute(\"SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'\").fetchall()
-    table_names = [t[0] for t in tables]
-    # 排除 alembic_version 本身
-    real_tables = [t for t in table_names if t != 'alembic_version']
-    
-    if real_tables:
-        # 有表但没有版本记录 -> 需要 stamp
-        print('stamp_needed')
-    else:
-        # 空数据库 -> 需要完整迁移
-        print('migrate')
-finally:
-    conn.close()
-" 2>&1)
-
-echo "数据库状态检查结果: $STAMP_NEEDED"
-
-case "$STAMP_NEEDED" in
-    stamp_needed)
-        echo "⚠️  数据库已有表但缺少 alembic 版本记录"
-        echo "   正在标记数据库到最新迁移版本（跳过已执行的迁移）..."
-        uv run alembic stamp head
-        echo "✅ 数据库版本标记完成"
+# 从 DATABASE_URL 提取数据库文件路径
+DB_PATH=""
+case "$DATABASE_URL" in
+    sqlite+aiosqlite:////*)
+        # 绝对路径: sqlite+aiosqlite:////app/data/intent_money.db -> /app/data/intent_money.db
+        DB_PATH=$(echo "$DATABASE_URL" | sed 's|sqlite+aiosqlite:////||')
         ;;
-    has_version)
+    sqlite+aiosqlite:///./intent_money.db)
+        # 相对路径
+        DB_PATH="/app/intent_money.db"
+        ;;
+    sqlite+aiosqlite:///*)
+        # 其他绝对路径
+        DB_PATH=$(echo "$DATABASE_URL" | sed 's|sqlite+aiosqlite:///||')
+        ;;
+    *)
+        DB_PATH="/app/data/intent_money.db"
+        ;;
+esac
+
+echo "数据库文件路径: $DB_PATH"
+
+# 检查数据库文件是否存在
+if [ -f "$DB_PATH" ]; then
+    echo "✅ 数据库文件存在"
+    
+    # 检查是否已有 alembic_version 记录
+    # 使用 uv run python 执行，确保在正确的环境中
+    HAS_VERSION=$(uv run python -c "
+import sqlite3
+try:
+    conn = sqlite3.connect('$DB_PATH')
+    rows = conn.execute('SELECT version_num FROM alembic_version').fetchall()
+    conn.close()
+    if rows:
+        print('yes')
+    else:
+        print('no')
+except Exception:
+    print('no')
+" 2>/dev/null || echo "no")
+    
+    echo "alembic 版本记录: $HAS_VERSION"
+    
+    if [ "$HAS_VERSION" = "yes" ]; then
         echo "📋 数据库已有 alembic 版本记录，执行增量迁移..."
         uv run alembic upgrade head
         echo "✅ 数据库迁移完成"
-        ;;
-    migrate)
-        echo "🆕 新数据库，执行完整迁移..."
-        uv run alembic upgrade head
-        echo "✅ 数据库迁移完成"
-        ;;
-    *)
-        echo "⚠️  无法确定数据库状态，尝试直接迁移..."
-        uv run alembic upgrade head
-        echo "✅ 数据库迁移完成"
-        ;;
-esac
+    else
+        # 检查是否有其他表（说明数据库是通过 create_all 创建的）
+        HAS_TABLES=$(uv run python -c "
+import sqlite3
+try:
+    conn = sqlite3.connect('$DB_PATH')
+    tables = conn.execute(\"SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name != 'alembic_version'\").fetchall()
+    conn.close()
+    if tables:
+        print('yes')
+    else:
+        print('no')
+except Exception:
+    print('no')
+" 2>/dev/null || echo "no")
+        
+        echo "已有数据表: $HAS_TABLES"
+        
+        if [ "$HAS_TABLES" = "yes" ]; then
+            echo "⚠️  数据库已有表但缺少 alembic 版本记录"
+            echo "   正在标记数据库到最新迁移版本（跳过已执行的迁移）..."
+            uv run alembic stamp head
+            echo "✅ 数据库版本标记完成"
+        else
+            echo "🆕 空数据库，执行完整迁移..."
+            uv run alembic upgrade head
+            echo "✅ 数据库迁移完成"
+        fi
+    fi
+else
+    echo "🆕 数据库文件不存在，执行完整迁移..."
+    uv run alembic upgrade head
+    echo "✅ 数据库迁移完成"
+fi
 
 # 启动应用
 echo "正在启动应用..."
