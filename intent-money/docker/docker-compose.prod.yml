@@ -11,6 +11,9 @@ services:
       SCRAPER_ENABLED: "false"
       AUTO_PUBLISH_ENABLED: "false"
       SOCIAL_AUTO_UPLOAD_PATH: ""
+      # Cookie 加密密钥（AES-256 需要 32 字节密钥的 Base64 编码）
+      # 生成方式: python -c "import base64,os; print(base64.b64encode(os.urandom(32)).decode())"
+      COOKIE_ENCRYPTION_KEY: "vKLKKWQTD8InVdumaBSrdxk8KFZ8GmWWO4YyJaStMUA="
     volumes:
       - db_data:/app/data
     restart: unless-stopped
