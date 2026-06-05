@@ -2,6 +2,8 @@ services:
   backend:
     build:
       context: ../backend
+    # 注意：env_file 加载后，environment 中的值会覆盖 env_file 中的值
+    # 所以这里明确设置关键环境变量，确保它们生效
     env_file:
       - ../backend/.env
     environment:
@@ -12,7 +14,7 @@ services:
       AUTO_PUBLISH_ENABLED: "false"
       SOCIAL_AUTO_UPLOAD_PATH: ""
       # Cookie 加密密钥（AES-256 需要 32 字节密钥的 Base64 编码）
-      # 生成方式: python -c "import base64,os; print(base64.b64encode(os.urandom(32)).decode())"
+      # 这个值会覆盖 .env 文件中的值
       COOKIE_ENCRYPTION_KEY: "vKLKKWQTD8InVdumaBSrdxk8KFZ8GmWWO4YyJaStMUA="
     volumes:
       - db_data:/app/data

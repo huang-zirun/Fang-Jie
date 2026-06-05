@@ -1,3 +1,4 @@
+import os
 from pydantic_settings import BaseSettings
 
 
@@ -25,7 +26,8 @@ class Settings(BaseSettings):
     SOCIAL_AUTO_UPLOAD_PATH: str = ""
     COOKIE_DIR: str = "cookies"
     COOKIE_EXPIRE_DAYS: int = 7
-    COOKIE_ENCRYPTION_KEY: str = ""
+    # 优先从环境变量读取，如果没有则使用默认值
+    COOKIE_ENCRYPTION_KEY: str = os.environ.get("COOKIE_ENCRYPTION_KEY", "")
     PER_USER_SCRAPING: bool = True
 
     # Development mode settings
