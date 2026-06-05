@@ -2,24 +2,17 @@ services:
   backend:
     build:
       context: ../backend
-    # 使用 environment 直接设置所有环境变量，避免 env_file 和 environment 的优先级问题
+    env_file:
+      - ../backend/.env
     environment:
+      # 以下环境变量会覆盖 .env 中的同名变量
       DATABASE_URL: sqlite+aiosqlite:////app/data/intent_money.db
       ENV: production
       DEV_MODE: "false"
       SCRAPER_ENABLED: "false"
       AUTO_PUBLISH_ENABLED: "false"
       SOCIAL_AUTO_UPLOAD_PATH: ""
-      # Cookie 加密密钥（AES-256 需要 32 字节密钥的 Base64 编码）
       COOKIE_ENCRYPTION_KEY: "vKLKKWQTD8InVdumaBSrdxk8KFZ8GmWWO4YyJaStMUA="
-      # AI 配置
-      AI_API_KEY: "${AI_API_KEY:-}"
-      AI_BASE_URL: "https://openrouter.ai/api/v1"
-      AI_MODEL: "deepseek/deepseek-v4-flash"
-      # JWT 配置
-      SECRET_KEY: "${SECRET_KEY:-change-me-in-production}"
-      ALGORITHM: "HS256"
-      ACCESS_TOKEN_EXPIRE_DAYS: "7"
     volumes:
       - db_data:/app/data
     restart: unless-stopped
