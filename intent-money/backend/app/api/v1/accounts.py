@@ -175,7 +175,7 @@ async def extension_cookie_login(
     if account:
         account.encrypted_cookie = encrypted
         account.cookie_iv = iv
-        account.cookie_status = "pending"
+        account.cookie_status = "active"
         account.cookie_set_at = now
         account.cookie_expires_at = expires_at
         account.last_validated_at = now
@@ -187,7 +187,7 @@ async def extension_cookie_login(
             platform=platform,
             encrypted_cookie=encrypted,
             cookie_iv=iv,
-            cookie_status="pending",
+            cookie_status="active",
             cookie_set_at=now,
             cookie_expires_at=expires_at,
             last_validated_at=now,
@@ -198,35 +198,8 @@ async def extension_cookie_login(
     await db.commit()
     await db.refresh(account)
     
-    # 启动后台验证任务（不阻塞响应）
-    async def validate_in_background():
-        """后台验证 Cookie 有效性并更新状态"""
-        from app.database import async_session_factory
-        async with async_session_factory() as bg_db:
-            try:
-                is_valid = await _validate_cookie(platform, storage_state_json)
-                now_bg = datetime.now(timezone.utc)
-                
-                # 重新查询 account 以在新的 session 中操作
-                bg_result = await bg_db.execute(
-                    select(UserPlatformAccount).where(
-                        UserPlatformAccount.user_id == current_user.id,
-                        UserPlatformAccount.platform == platform,
-                    )
-                )
-                bg_account = bg_result.scalars().first()
-                if bg_account:
-                    bg_account.last_validated_at = now_bg
-                    if is_valid:
-                        bg_account.cookie_status = "active"
-                    else:
-                        bg_account.cookie_status = "expired"
-                    await bg_db.commit()
-                    logger.info(f"后台验证完成: platform={platform}, user_id={current_user.id}, valid={is_valid}")
-            except Exception as e:
-                logger.error(f"后台验证失败: platform={platform}, user_id={current_user.id}, error={e}")
-    
-    asyncio.create_task(validate_in_background())
+    # 跳过后台验证，直接返回 account（cookie 状态已设置为 active）
+    logger.info(f"Cookie 同步成功: platform={platform}, user_id={current_user.id}, status=active")
     
     return account
 

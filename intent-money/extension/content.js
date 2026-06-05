@@ -107,6 +107,36 @@ window.addEventListener("message", async (event) => {
       }
     },
 
+    INTENT_MONEY_GET_CONFIG: async () => {
+      try {
+        const response = await chrome.runtime.sendMessage({
+          action: "GET_CONFIG"
+        });
+        window.postMessage(
+          {
+            source: "intent-money-extension",
+            type: "INTENT_MONEY_GET_CONFIG_RESULT",
+            requestId: requestId,
+            success: response.success,
+            config: response.config,
+            error: response.error
+          },
+          "*"
+        );
+      } catch (err) {
+        window.postMessage(
+          {
+            source: "intent-money-extension",
+            type: "INTENT_MONEY_GET_CONFIG_RESULT",
+            requestId: requestId,
+            success: false,
+            error: err.message
+          },
+          "*"
+        );
+      }
+    },
+
     INTENT_MONEY_SET_CONFIG: async () => {
       try {
         const response = await chrome.runtime.sendMessage({
